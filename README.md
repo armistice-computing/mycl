@@ -1,10 +1,10 @@
 # Mycl
 
-Mycl is a local knowledge graph that people and agents write in together.
+Mycl is a knowledge graph that humans and agents compose and navigate together like a notes app.
 
 Your notes are documents made of blocks. Typed links called wires say how one passage bears on another: this supports that, this contradicts that. You can mark what matters, and what nobody tends fades. The agent you already use (Claude Code, Codex, Cursor and others) can connect to your graph and read and write beside you.
 
-Everything is kept on your computer. There is no account and no server. Mycl is free, and it is early.
+Everything is kept on your computer. There is no account and no server. Mycl is released for free, and it has a long way to go.
 
 ## Get it
 
@@ -22,7 +22,11 @@ On why we built it:
 - [Selected Writings on AI Harmony](docs/writings/selected-writings-on-ai-harmony.md)
 - [Selected Writings on Agent Ontology](docs/writings/selected-writings-on-agent-ontology.md)
 
-For building from source and how it works inside, see [docs](docs/).
+For building from source and how it works inside, see [docs](docs/). The frontend lives in its own repository, [mycl-shrubbery](https://github.com/armistice-computing/mycl-shrubbery).
+
+## Where it comes from
+
+Mycl is a fork of Sophia Labs' Garden project, made by a former member of Sophia Labs. Garden's current form is at [sophia-labs/gardend](https://github.com/sophia-labs/gardend).
 
 ## License
 
