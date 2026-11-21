@@ -1,0 +1,964 @@
+use crate::app_runtime::AppHandle;
+use crate::{
+    clock::timestamp,
+    crdt_queue::record_crdt_phase,
+    document_history_file_store::{read_document_tail_commit, write_document_tail_commit},
+    document_history_service::{
+        committed_snapshot_for_document, ensure_document_snapshot_for_revision,
+        ensure_document_snapshot_for_revision_with_tombstone_fence,
+    },
+    document_history_store::{LocalDocumentTailCommit, DOCUMENT_TAIL_COMMIT_SCHEMA_VERSION},
+    document_meaningful_object::reconcile_document_record,
+    document_record_store::{read_workspace_record, write_document_record, write_ydoc_update},
+    document_service::{
+        DocumentRecord, SaveDocumentInput, SaveDocumentYDocStateInput, SaveWorkspaceYDocStateInput,
+    },
+    document_types::{SaveWorkspaceInput, WorkspaceRecord},
+    graph_record_store::{touch_graph_content_revision, GraphRecord},
+    ids::normalize_title,
+    paths::{
+        document_dir, document_ydoc_state_path, ensure_document_dirs, existing_document_dir,
+        existing_graph_dir, workspace_snapshot_path, workspace_ydoc_state_path,
+    },
+    rdf::document_subject,
+    rdf_service::{document_tree_triples, open_graph_store, reconcile_workspace_snapshot},
+    restore_guard::require_no_active_restore,
+    runtime_config::{DOCUMENT_SCHEMA_VERSION, LOCAL_GRAPH_ORIGIN, LOCAL_PROVIDER_ID},
+    storage::{display_path, read_json, write_json},
+};
+use std::{path::Path, time::Instant};
+
+fn document_tail_commit_is_current(
+    graph_dir: &Path,
+    document: &DocumentRecord,
+) -> Result<bool, String> {
+    // A corrupt marker is incomplete tail state, not authority. The repair
+    // path overwrites it atomically after rebuilding every preceding stage.
+    let commit = match read_document_tail_commit(graph_dir, &document.document_id) {
+        Ok(Some(commit)) => commit,
+        Ok(None) | Err(_) => return Ok(false),
+    };
+    if commit.schema_version != DOCUMENT_TAIL_COMMIT_SCHEMA_VERSION
+        || commit.graph_id != document.graph_id
+        || commit.document_id != document.document_id
+        || commit.document_revision != document.revision
+    {
+        return Ok(false);
+    }
+    let graph = read_json::<GraphRecord>(&graph_dir.join("graph.json"))?;
+    if graph.graph_id != document.graph_id {
+        return Ok(false);
+    }
+    let graph_covers_commit = match (
+        graph
+            .content_revision
+            .as_deref()
+            .and_then(crate::clock::parse_timestamp),
+        crate::clock::parse_timestamp(&commit.graph_content_revision),
+    ) {
+        (Some(current), Some(committed)) => current >= committed,
+        _ => graph.content_revision.as_deref() == Some(commit.graph_content_revision.as_str()),
+    };
+    if !graph_covers_commit {
+        return Ok(false);
+    }
+    Ok(committed_snapshot_for_document(graph_dir, document, &commit.snapshot_id)?.is_some())
+}
+
+/// Complete or repair every durable projection for one exact document
+/// revision. The final marker is authoritative only after all preceding
+/// stages succeed; this function never writes document.json or increments its
+/// revision.
+pub(super) fn ensure_document_persistence_tail(
+    graph_dir: &Path,
+    document: &DocumentRecord,
+) -> Result<bool, String> {
+    ensure_document_persistence_tail_with_tombstone_fence(graph_dir, document, None)
+}
+
+pub(crate) fn ensure_document_persistence_tail_with_tombstone_fence(
+    graph_dir: &Path,
+    document: &DocumentRecord,
+    expected_deletion_id: Option<&str>,
+) -> Result<bool, String> {
+    let _durability_guard = crate::cell_durability::write_guard();
+    if let Some(expected_deletion_id) = expected_deletion_id {
+        crate::document_tombstone_store::require_document_tombstone_matches(
+            graph_dir,
+            &document.document_id,
+            expected_deletion_id,
+        )?;
+    }
+    if document_tail_commit_is_current(graph_dir, document)? {
+        return Ok(false);
+    }
+
+    let store = open_graph_store(graph_dir)?;
+    reconcile_document_record(&store, document)?;
+    let snapshot = if let Some(expected_deletion_id) = expected_deletion_id {
+        ensure_document_snapshot_for_revision_with_tombstone_fence(
+            graph_dir,
+            document,
+            Some(expected_deletion_id),
+        )?
+    } else {
+        ensure_document_snapshot_for_revision(graph_dir, document)?
+    };
+    let graph_content_revision =
+        touch_graph_content_revision(graph_dir).map_err(crate::app_error::AppError::message)?;
+    write_document_tail_commit(
+        graph_dir,
+        &LocalDocumentTailCommit {
+            schema_version: DOCUMENT_TAIL_COMMIT_SCHEMA_VERSION,
+            graph_id: document.graph_id.clone(),
+            document_id: document.document_id.clone(),
+            document_revision: document.revision,
+            snapshot_id: snapshot.snapshot_id,
+            graph_content_revision,
+        },
+    )?;
+    Ok(true)
+}
+
+/// Top-level workspace-snapshot fields that change on every save regardless of
+/// content and so must be ignored when deciding whether the RDF seed's input
+/// actually changed. `materializedAt` is a fresh build timestamp on every
+/// snapshot; `counts` is derived from the content arrays (redundant with them).
+/// Everything else — folders, documents, artifacts, wires, tree, ui — is real.
+const WORKSPACE_SNAPSHOT_VOLATILE_KEYS: [&str; 2] = ["materializedAt", "counts"];
+
+/// A copy of the snapshot with the save-volatile keys removed, for change
+/// detection only (the full snapshot, timestamp and all, is still persisted).
+fn workspace_snapshot_content(snapshot: &serde_json::Value) -> serde_json::Value {
+    let mut content = snapshot.clone();
+    if let Some(object) = content.as_object_mut() {
+        for key in WORKSPACE_SNAPSHOT_VOLATILE_KEYS {
+            object.remove(key);
+        }
+    }
+    content
+}
+
+/// True when `snapshot` carries the same seed-materializable CONTENT as the
+/// workspace snapshot already on disk at `snapshot_path`. Compares parsed JSON
+/// values with the save-volatile keys stripped, so a fresh `materializedAt`
+/// (which changes on every save) is not mistaken for a content change —
+/// otherwise the RDF-seed marker restales on every launch. Incidental
+/// key-ordering is also not a change. A missing or unparseable prior snapshot
+/// counts as changed (fail toward doing the work), so a first save always
+/// materializes.
+fn workspace_snapshot_content_unchanged(
+    snapshot_path: &Path,
+    snapshot: &serde_json::Value,
+) -> bool {
+    read_json::<serde_json::Value>(snapshot_path)
+        .map(|existing| workspace_snapshot_content(&existing) == workspace_snapshot_content(snapshot))
+        .unwrap_or(false)
+}
+
+#[cfg_attr(feature = "desktop", tauri::command)]
+pub(super) fn save_workspace(
+    app: AppHandle,
+    input: SaveWorkspaceInput,
+) -> Result<WorkspaceRecord, String> {
+    let _lease =
+        crate::crdt_engine::persistence_coordinator::acquire_hot_write_blocking_if_managed(
+            &app,
+            &input.graph_id,
+        )?;
+    validate_client_workspace_replacement(&app, &input.graph_id, &input.ydoc_update_base64)?;
+    save_workspace_with_lease(app, input)
+}
+
+fn validate_client_workspace_replacement(app: &AppHandle, graph_id: &str, encoded: &str) -> Result<(), String> {
+    use base64::Engine;
+    let path = workspace_ydoc_state_path(&existing_graph_dir(app, graph_id)?);
+    let current = match std::fs::read(path) {
+        Ok(bytes) => bytes,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Vec::new(),
+        Err(e) => return Err(e.to_string()),
+    };
+    let replacement = base64::engine::general_purpose::STANDARD.decode(encoded.trim())
+        .map_err(|e| format!("decode workspace replacement: {e}"))?;
+    crate::workspace_receipt_guard::validate_replacement(&current, &replacement)
+}
+
+/// Non-reentrant workspace save body for a queue/import root that already
+/// owns graph persistence authority.
+pub(crate) fn save_workspace_with_lease(
+    app: AppHandle,
+    input: SaveWorkspaceInput,
+) -> Result<WorkspaceRecord, String> {
+    let _flush_guard = crate::cell_durability::write_guard();
+    require_no_active_restore(&app, &input.graph_id)?;
+    let trace_operation_id = input.trace_operation_id.clone();
+    let load_started = Instant::now();
+    let graph_dir = existing_graph_dir(&app, &input.graph_id)?;
+    record_crdt_phase(
+        &app,
+        trace_operation_id.as_deref(),
+        "rustWorkspaceLoadGraphMs",
+        load_started.elapsed(),
+    );
+
+    let write_ydoc_started = Instant::now();
+    write_ydoc_update(
+        &workspace_ydoc_state_path(&graph_dir),
+        &input.ydoc_update_base64,
+    )?;
+    record_crdt_phase(
+        &app,
+        trace_operation_id.as_deref(),
+        "rustWriteWorkspaceYdocMs",
+        write_ydoc_started.elapsed(),
+    );
+    // Reconcile the RDF projection and bump the content revision ONLY when the
+    // workspace snapshot actually changed. The UI re-saves an identical
+    // snapshot as part of every session join; bumping unconditionally moved
+    // content_revision (and, with it, updated_at) on every launch, which
+    // staled the rdf-seed marker AND the time-travel capture index, triggering
+    // a full-graph reseed walk + capture storm against a live query on boot
+    // — the revision-churn root cause that made the imported graph fail to
+    // load (2026-08-30). The Y.Doc write above is unconditional (crash
+    // recovery); only the projection-affecting work is gated. A no-op re-save
+    // would reconcile to byte-identical RDF, so skipping it changes nothing.
+    let mut workspace_content_changed = false;
+    if let Some(snapshot) = input.snapshot {
+        let snapshot_path = workspace_snapshot_path(&graph_dir);
+        // Decide BEFORE overwriting whether the seed-materializable content
+        // actually changed (volatile fields like materializedAt stripped).
+        workspace_content_changed = !workspace_snapshot_content_unchanged(&snapshot_path, &snapshot);
+        // Always persist the full snapshot — the UI's view state (expanded
+        // folders, materializedAt, etc.) lives here and must survive even a
+        // content no-op.
+        let write_snapshot_started = Instant::now();
+        write_json(&snapshot_path, &snapshot)?;
+        record_crdt_phase(
+            &app,
+            trace_operation_id.as_deref(),
+            "rustWriteWorkspaceSnapshotMs",
+            write_snapshot_started.elapsed(),
+        );
+        // But only re-materialize the RDF projection when content changed. A
+        // no-op re-save would reconcile to byte-identical RDF, so skipping it
+        // (and the revision bump below) changes nothing except the storms.
+        if workspace_content_changed {
+            let materialize_started = Instant::now();
+            let store = open_graph_store(&graph_dir)?;
+            reconcile_workspace_snapshot(&store, &input.graph_id, &snapshot)?;
+            record_crdt_phase(
+                &app,
+                trace_operation_id.as_deref(),
+                "rustMaterializeWorkspaceRdfMs",
+                materialize_started.elapsed(),
+            );
+        }
+    }
+    if workspace_content_changed {
+        let touch_started = Instant::now();
+        touch_graph_content_revision(&graph_dir)?;
+        record_crdt_phase(
+            &app,
+            trace_operation_id.as_deref(),
+            "rustTouchWorkspaceGraphMs",
+            touch_started.elapsed(),
+        );
+    }
+    let read_started = Instant::now();
+    let record = read_workspace_record(&graph_dir, &input.graph_id);
+    record_crdt_phase(
+        &app,
+        trace_operation_id.as_deref(),
+        "rustReadWorkspaceRecordMs",
+        read_started.elapsed(),
+    );
+    record
+}
+
+/// Hot-path workspace persistence: write only the workspace Y.Doc binary state
+/// for crash recovery. Full workspace snapshot/RDF materialization is handled
+/// by the debounced cold flush.
+#[cfg_attr(feature = "desktop", tauri::command)]
+pub(super) fn save_workspace_ydoc_state(
+    app: AppHandle,
+    input: SaveWorkspaceYDocStateInput,
+) -> Result<(), String> {
+    let _lease =
+        crate::crdt_engine::persistence_coordinator::acquire_hot_write_blocking_if_managed(
+            &app,
+            &input.graph_id,
+        )?;
+    validate_client_workspace_replacement(&app, &input.graph_id, &input.ydoc_update_base64)?;
+    save_workspace_ydoc_state_with_lease(app, input)
+}
+
+fn save_workspace_ydoc_state_with_lease(
+    app: AppHandle,
+    input: SaveWorkspaceYDocStateInput,
+) -> Result<(), String> {
+    let _flush_guard = crate::cell_durability::write_guard();
+    require_no_active_restore(&app, &input.graph_id)?;
+    let trace_operation_id = input.trace_operation_id.clone();
+    let started = Instant::now();
+    let graph_dir = existing_graph_dir(&app, &input.graph_id)?;
+    write_ydoc_update(
+        &workspace_ydoc_state_path(&graph_dir),
+        &input.ydoc_update_base64,
+    )?;
+    record_crdt_phase(
+        &app,
+        trace_operation_id.as_deref(),
+        "rustWriteWorkspaceYDocStateMs",
+        started.elapsed(),
+    );
+    Ok(())
+}
+
+/// Hot-path persistence: write only the Y.Doc binary state for crash recovery.
+/// Skips document.json updates, projection files, RDF re-materialization, and
+/// the graph touch between debounced full materializations.
+#[cfg_attr(feature = "desktop", tauri::command)]
+pub(super) fn save_document_ydoc_state(
+    app: AppHandle,
+    input: SaveDocumentYDocStateInput,
+) -> Result<(), String> {
+    let _lease =
+        crate::crdt_engine::persistence_coordinator::acquire_hot_write_blocking_if_managed(
+            &app,
+            &input.graph_id,
+        )?;
+    save_document_ydoc_state_with_lease(app, input)
+}
+
+fn save_document_ydoc_state_with_lease(
+    app: AppHandle,
+    input: SaveDocumentYDocStateInput,
+) -> Result<(), String> {
+    let _flush_guard = crate::cell_durability::write_guard();
+    require_no_active_restore(&app, &input.graph_id)?;
+    let trace_operation_id = input.trace_operation_id.clone();
+    let started = Instant::now();
+    let graph_dir = existing_graph_dir(&app, &input.graph_id)?;
+    crate::geist_derived_view::require_editable(&graph_dir, &input.document_id)?;
+    crate::document_tombstone_store::require_document_not_tombstoned(
+        &graph_dir,
+        &input.document_id,
+    )?;
+    let _ = existing_document_dir(&graph_dir, &input.document_id)?;
+    write_ydoc_update(
+        &document_ydoc_state_path(&graph_dir, &input.document_id),
+        &input.ydoc_update_base64,
+    )?;
+    record_crdt_phase(
+        &app,
+        trace_operation_id.as_deref(),
+        "rustWriteYDocStateMs",
+        started.elapsed(),
+    );
+    Ok(())
+}
+
+#[cfg_attr(feature = "desktop", tauri::command)]
+pub(super) fn save_document(
+    app: AppHandle,
+    input: SaveDocumentInput,
+) -> Result<DocumentRecord, String> {
+    let _lease =
+        crate::crdt_engine::persistence_coordinator::acquire_hot_write_blocking_if_managed(
+            &app,
+            &input.graph_id,
+        )?;
+    save_document_with_lease(app, input)
+}
+
+/// Non-reentrant document save body for queue/import handlers that already
+/// hold the graph persistence lease.
+pub(crate) fn save_document_with_lease(
+    app: AppHandle,
+    input: SaveDocumentInput,
+) -> Result<DocumentRecord, String> {
+    save_document_with_tombstone_fence(app, input, None)
+}
+
+/// Persist a fresh same-ID authority while retaining its public deletion
+/// marker. The exact deletion UUID is revalidated by the history tail before
+/// the save can commit as a legitimate recreation.
+pub(crate) fn save_document_for_recreation(
+    app: AppHandle,
+    input: SaveDocumentInput,
+    expected_deletion_id: &str,
+) -> Result<DocumentRecord, String> {
+    save_document_with_tombstone_fence(app, input, Some(expected_deletion_id))
+}
+
+fn save_document_with_tombstone_fence(
+    app: AppHandle,
+    input: SaveDocumentInput,
+    expected_deletion_id: Option<&str>,
+) -> Result<DocumentRecord, String> {
+    let _flush_guard = crate::cell_durability::write_guard();
+    require_no_active_restore(&app, &input.graph_id)?;
+    let trace_operation_id = input.trace_operation_id.clone();
+    let load_started = Instant::now();
+    let graph_dir = existing_graph_dir(&app, &input.graph_id)?;
+    // Check stored authority before hydration, recreation, or the force bypass.
+    crate::geist_derived_view::require_editable(&graph_dir, &input.document_id)?;
+    if let Some(expected_deletion_id) = expected_deletion_id {
+        crate::document_tombstone_store::require_document_tombstone_matches(
+            &graph_dir,
+            &input.document_id,
+            expected_deletion_id,
+        )?;
+    } else {
+        crate::document_tombstone_store::require_document_not_tombstoned(
+            &graph_dir,
+            &input.document_id,
+        )?;
+    }
+    let title = normalize_title(&input.title)?;
+    let mut document = read_or_initialize_document_record(
+        &graph_dir,
+        &input.graph_id,
+        &input.document_id,
+        &title,
+    )?;
+    record_crdt_phase(
+        &app,
+        trace_operation_id.as_deref(),
+        "rustLoadDocumentRecordMs",
+        load_started.elapsed(),
+    );
+    document.title = title;
+    // Chronicle: `force` is the explicit staleness-guard bypass (design of
+    // record Part 3) — it drops the expected-revision check and is recorded
+    // on the record below, so an override is possible but never silent.
+    let expected_revision = if input.force {
+        None
+    } else {
+        input.expected_revision
+    };
+    let first_authored_write = document.revision == 0;
+    document.revision = next_revision(document.revision, expected_revision)?;
+    document.body = input.body;
+    document.schema_version = DOCUMENT_SCHEMA_VERSION;
+    document.tiptap_xml = input.tiptap_xml.unwrap_or_default();
+    document.tiptap_json = input.tiptap_json;
+    document.ydoc_update_base64 = input.ydoc_update_base64.unwrap_or_default();
+    document.ydoc_state_path =
+        display_path(&document_ydoc_state_path(&graph_dir, &document.document_id));
+    document.tree = input.tree;
+    document.blocks = input.blocks.unwrap_or_default();
+    let tree_triples = document_tree_triples(&document);
+    document.rdf_triple_count = tree_triples.len();
+    let now = timestamp();
+    document.updated_at = now.clone();
+    // Chronicle stamps. The actor rides the CRDT payload from the request
+    // principal; a save without one (editor sync flush, desktop bridge) is
+    // the local human owner's. A record at revision 0 has never carried an
+    // authored write, so its creator is whoever writes first; a legacy record
+    // that predates the chronicle keeps an honestly unknown `createdBy`.
+    let actor = input
+        .actor
+        .clone()
+        .unwrap_or_else(crate::document_chronicle::ChronicleActor::human_owner);
+    if first_authored_write && document.chronicle.created_by.is_none() {
+        document.chronicle.created_by = Some(actor.clone());
+    }
+    document
+        .chronicle
+        .record_write(&actor, &now, document.revision, input.force);
+    // Agentic time: the clock as the Cantor last witnessed it, a record with
+    // weak provenance beside the wall clock. Absent when nobody witnessed.
+    document.chronicle.record_clock(
+        first_authored_write,
+        crate::agentic_clock::read_stamp(&actor),
+    );
+    if let Some(restore) = input.chronicle_restore {
+        // Import: the archive's clock and authorship are the truth; the
+        // import instant is not a birthday. `createdAtSource` says which
+        // evidence the restored clock rests on.
+        restore.apply(&mut document);
+    }
+
+    let write_started = Instant::now();
+    write_document_record(&graph_dir, &document)?;
+    record_crdt_phase(
+        &app,
+        trace_operation_id.as_deref(),
+        "rustWriteDocumentFilesMs",
+        write_started.elapsed(),
+    );
+    let materialize_started = Instant::now();
+    ensure_document_persistence_tail_with_tombstone_fence(
+        &graph_dir,
+        &document,
+        expected_deletion_id,
+    )?;
+    record_crdt_phase(
+        &app,
+        trace_operation_id.as_deref(),
+        "rustPersistDocumentTailMs",
+        materialize_started.elapsed(),
+    );
+
+    crate::document_settlement::mark_document_dirty(
+        &app,
+        &document.graph_id,
+        &document.document_id,
+    );
+
+    Ok(document)
+}
+
+/// A2 item 9 — idempotency-aware revision increment.
+///
+/// Returns the next revision value or an error on unrelated mismatch.
+///
+/// | `expected_revision` | `current` vs `expected` | outcome                          |
+/// |---------------------|-------------------------|----------------------------------|
+/// | `None`              | any                     | `current + 1` (unconditional)    |
+/// | `Some(e)`           | `current == e`          | `current + 1` (normal write)     |
+/// | `Some(e)`           | `current == e + 1`      | `current` (already-applied replay) |
+/// | `Some(e)`           | anything else           | `Err` (conflict)                 |
+pub(crate) fn next_revision(current: u64, expected_revision: Option<u64>) -> Result<u64, String> {
+    match expected_revision {
+        None => Ok(current.saturating_add(1)),
+        Some(expected) if current == expected => Ok(current.saturating_add(1)),
+        Some(expected) if current == expected.saturating_add(1) => Ok(current),
+        Some(expected) => Err(format!(
+            "revision conflict: expected {expected}, actual {current}"
+        )),
+    }
+}
+
+fn read_or_initialize_document_record(
+    graph_dir: &Path,
+    graph_id: &str,
+    document_id: &str,
+    title: &str,
+) -> Result<DocumentRecord, String> {
+    let document_dir = document_dir(graph_dir, document_id)?;
+    if document_dir.join("document.json").is_file() {
+        return read_json::<DocumentRecord>(&document_dir.join("document.json"))
+            .map_err(Into::into);
+    }
+
+    ensure_document_dirs(graph_dir, document_id)?;
+    let now = timestamp();
+    Ok(DocumentRecord {
+        document_id: document_id.to_string(),
+        graph_id: graph_id.to_string(),
+        title: title.to_string(),
+        revision: 0,
+        body: String::new(),
+        origin: LOCAL_GRAPH_ORIGIN.to_string(),
+        provider_id: LOCAL_PROVIDER_ID.to_string(),
+        local_path: display_path(&document_dir),
+        rdf_subject: document_subject(document_id),
+        created_at: now.clone(),
+        updated_at: now,
+        capabilities: vec![
+            "document.local.read".to_string(),
+            "document.local.write".to_string(),
+            "document.local.materialize.rdf".to_string(),
+            "document.local.ydoc".to_string(),
+            "document.local.tiptap-tree".to_string(),
+        ],
+        schema_version: DOCUMENT_SCHEMA_VERSION,
+        tiptap_xml: String::new(),
+        tiptap_json: None,
+        ydoc_update_base64: String::new(),
+        ydoc_state_path: display_path(&document_ydoc_state_path(graph_dir, document_id)),
+        tree: None,
+        blocks: Vec::new(),
+        rdf_triple_count: 0,
+        chronicle: Default::default(),
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use uuid::Uuid;
+
+    #[test]
+    fn workspace_receipt_guard_covers_both_native_replacement_commands() {
+        use base64::Engine;
+        use yrs::{Doc, Map, ReadTxn, StateVector, Transact};
+        let _serial = crate::tauri_runtime::profile_env_serial().lock().unwrap_or_else(|p| p.into_inner());
+        let previous = std::env::var_os("GARDEN_PROFILE_DIR");
+        let profile = tempfile::tempdir().unwrap();
+        std::env::set_var("GARDEN_PROFILE_DIR", profile.path());
+        let result = std::panic::catch_unwind(|| {
+            let app = crate::tauri_runtime::build_mock_app_for_tests(true);
+            let graph = "native-receipt-guard";
+            crate::graph_service::create_graph_service(&app, crate::graph_service::CreateGraphInput {
+                title: "Receipt guard".into(), graph_id: Some(graph.into()), description: None, operation_id: None,
+            }).unwrap();
+            let dir = existing_graph_dir(&app, graph).unwrap();
+            let path = workspace_ydoc_state_path(&dir);
+            let doc = Doc::new();
+            doc.get_or_insert_map(crate::workspace_receipt_guard::RECEIPT_MAP).insert(&mut doc.transact_mut(), "entry", "receipt");
+            let bytes = doc.transact().encode_state_as_update_v1(&StateVector::default());
+            let encoded = base64::engine::general_purpose::STANDARD.encode(&bytes);
+            write_ydoc_update(&path, &encoded).unwrap();
+            assert!(save_workspace_ydoc_state(app.clone(), SaveWorkspaceYDocStateInput {
+                graph_id: graph.into(), ydoc_update_base64: String::new(), trace_operation_id: None,
+            }).unwrap_err().contains("receipts"));
+            assert_eq!(std::fs::read(&path).unwrap(), bytes);
+            assert!(save_workspace(app.clone(), SaveWorkspaceInput {
+                graph_id: graph.into(), ydoc_update_base64: String::new(), snapshot: None, trace_operation_id: None,
+            }).unwrap_err().contains("receipts"));
+            assert_eq!(std::fs::read(&path).unwrap(), bytes);
+            save_workspace_ydoc_state(app, SaveWorkspaceYDocStateInput {
+                graph_id: graph.into(), ydoc_update_base64: encoded, trace_operation_id: None,
+            }).unwrap();
+        });
+        match previous { Some(p) => std::env::set_var("GARDEN_PROFILE_DIR", p), None => std::env::remove_var("GARDEN_PROFILE_DIR") }
+        if let Err(payload) = result { std::panic::resume_unwind(payload); }
+    }
+
+    fn temp_graph_dir(prefix: &str) -> std::path::PathBuf {
+        std::env::temp_dir().join(format!("{prefix}-{}", Uuid::new_v4()))
+    }
+
+    #[test]
+    fn derived_views_reject_direct_save_sidecar_and_delete_without_changes() {
+        let _serial = crate::tauri_runtime::profile_env_serial()
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let previous_profile = std::env::var_os("GARDEN_PROFILE_DIR");
+        let profile = temp_graph_dir("garden-derived-write-guards");
+        std::env::set_var("GARDEN_PROFILE_DIR", &profile);
+        let result = std::panic::catch_unwind(|| {
+            let app = crate::tauri_runtime::build_mock_app_for_tests(true);
+            let graph_id = "derived-guards";
+            crate::graph_service::create_graph_service(
+                &app,
+                crate::graph_service::CreateGraphInput {
+                    title: "Derived guards".into(),
+                    graph_id: Some(graph_id.into()),
+                    description: None,
+                    operation_id: None,
+                },
+            )
+            .expect("create graph");
+            let graph_dir = existing_graph_dir(&app, graph_id).unwrap();
+            for (document_id, marked) in [("marked-view", true), ("legacy-view", false)] {
+                let mut record = read_or_initialize_document_record(
+                    &graph_dir,
+                    graph_id,
+                    document_id,
+                    "Native projection",
+                )
+                .unwrap();
+                if marked {
+                    crate::geist_derived_view::register(&graph_dir, document_id)
+                        .expect("register derived view");
+                } else {
+                    record.capabilities = vec!["narrative.local.song".into()];
+                }
+                let manifest = document_dir(&graph_dir, document_id)
+                    .unwrap()
+                    .join("document.json");
+                write_json(&manifest, &record).unwrap();
+                let state_path = document_ydoc_state_path(&graph_dir, document_id);
+                fs::write(&state_path, b"unchanged-sidecar").unwrap();
+                let before = fs::read(&manifest).unwrap();
+                let input: SaveDocumentInput = serde_json::from_value(serde_json::json!({
+                    "graphId": graph_id, "documentId": document_id,
+                    "title": "Forged", "body": "Forged", "force": true,
+                    "capabilities": ["document.local.write"],
+                }))
+                .unwrap();
+                let rejection = crate::geist_derived_view::require_editable(&graph_dir, document_id)
+                    .unwrap_err();
+                assert_eq!(
+                    crate::document_service::create_document_with_lease(
+                        app.clone(),
+                        crate::document_types::CreateDocumentInput {
+                            graph_id: graph_id.into(),
+                            document_id: Some(document_id.into()),
+                            title: "Replacement".into(),
+                        },
+                    )
+                    .unwrap_err(),
+                    rejection
+                );
+                assert_eq!(
+                    save_document_with_lease(app.clone(), input).unwrap_err(),
+                    rejection
+                );
+                assert_eq!(
+                    save_document_ydoc_state_with_lease(
+                        app.clone(),
+                        SaveDocumentYDocStateInput {
+                            graph_id: graph_id.into(),
+                            document_id: document_id.into(),
+                            ydoc_update_base64: "AA==".into(),
+                            trace_operation_id: None,
+                        }
+                    )
+                    .unwrap_err(),
+                    rejection
+                );
+                assert_eq!(
+                    crate::document_delete_service::delete_document_for_operation(
+                        app.clone(),
+                        graph_id.into(),
+                        document_id.into(),
+                        None,
+                    )
+                    .unwrap_err(),
+                    rejection
+                );
+                assert_eq!(fs::read(&manifest).unwrap(), before);
+                assert_eq!(fs::read(&state_path).unwrap(), b"unchanged-sidecar");
+                assert!(!crate::document_tombstone_store::document_is_tombstoned(
+                    &graph_dir,
+                    document_id,
+                )
+                .unwrap());
+                let workspace = serde_json::json!({"readOnly": false});
+                let summary = crate::document_hosted_projection::hosted_document_summary_value(
+                    &record,
+                    Some(&workspace),
+                    graph_id,
+                    &graph_dir,
+                )
+                .unwrap();
+                assert_eq!(serde_json::to_value(summary).unwrap()["readOnly"], true);
+                if marked {
+                    fs::remove_file(&manifest).unwrap();
+                    assert_eq!(
+                        crate::document_service::create_document_with_lease(
+                            app.clone(),
+                            crate::document_types::CreateDocumentInput {
+                                graph_id: graph_id.into(),
+                                document_id: Some(document_id.into()),
+                                title: "Replacement".into(),
+                            },
+                        )
+                        .unwrap_err(),
+                        rejection
+                    );
+                    assert!(!manifest.exists());
+                    assert_eq!(fs::read(&state_path).unwrap(), b"unchanged-sidecar");
+                }
+            }
+        });
+        match previous_profile {
+            Some(value) => std::env::set_var("GARDEN_PROFILE_DIR", value),
+            None => std::env::remove_var("GARDEN_PROFILE_DIR"),
+        }
+        let _ = fs::remove_dir_all(profile);
+        if let Err(panic) = result {
+            std::panic::resume_unwind(panic);
+        }
+    }
+
+    #[test]
+    fn read_or_initialize_document_record_bootstraps_missing_manifest() {
+        let graph_dir = temp_graph_dir("sophia-save-document-bootstrap");
+        let document_id = "doc-bootstrap";
+
+        let record =
+            read_or_initialize_document_record(&graph_dir, "graph-a", document_id, "Draft")
+                .expect("bootstrap document record");
+
+        assert_eq!(record.document_id, document_id);
+        assert_eq!(record.graph_id, "graph-a");
+        assert_eq!(record.title, "Draft");
+        assert_eq!(record.revision, 0);
+        assert!(graph_dir.join("documents/doc-bootstrap").is_dir());
+        assert!(graph_dir.join("ydocs/documents/doc-bootstrap").is_dir());
+        fs::remove_dir_all(graph_dir).unwrap();
+    }
+
+    // --- A2 item 9: next_revision tests ---
+
+    /// Normal write: expected_revision matches current → increment.
+    #[test]
+    fn revision_increments_when_expected_revision_matches() {
+        assert_eq!(next_revision(3, Some(3)).unwrap(), 4);
+        // Also works at 0 (new document).
+        assert_eq!(next_revision(0, Some(0)).unwrap(), 1);
+    }
+
+    /// Replay: current is already ahead-by-one → treat as already-applied,
+    /// return current unchanged.
+    #[test]
+    fn revision_skips_increment_on_replay_when_expected_plus_one() {
+        assert_eq!(next_revision(4, Some(3)).unwrap(), 4);
+        assert_eq!(next_revision(1, Some(0)).unwrap(), 1);
+    }
+
+    /// Unrelated mismatch (current differs by more than one from expected) →
+    /// conflict error.
+    #[test]
+    fn revision_returns_conflict_on_unrelated_mismatch() {
+        let err = next_revision(5, Some(3)).unwrap_err();
+        assert!(
+            err.contains("conflict"),
+            "expected conflict in error message, got: {err}"
+        );
+        // Also errors when current is behind expected.
+        let err2 = next_revision(2, Some(5)).unwrap_err();
+        assert!(err2.contains("conflict"), "expected conflict, got: {err2}");
+    }
+
+    /// Backward-compat: absent expected_revision → unconditional increment.
+    #[test]
+    fn revision_increments_unconditionally_when_expected_revision_absent() {
+        assert_eq!(next_revision(0, None).unwrap(), 1);
+        assert_eq!(next_revision(99, None).unwrap(), 100);
+        // Saturating at u64::MAX.
+        assert_eq!(next_revision(u64::MAX, None).unwrap(), u64::MAX);
+    }
+
+    #[test]
+    fn workspace_snapshot_content_unchanged_ignores_volatile_and_catches_real_change() {
+        let dir = temp_graph_dir("sophia-ws-snap-cmp");
+        fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("workspace.snapshot.json");
+        let snap = serde_json::json!({
+            "materializedAt": 1000,
+            "counts": {"documents": 1},
+            "documents": [{"id": "a", "title": "A"}],
+            "folders": [],
+            "wires": [],
+        });
+
+        // Missing prior snapshot → treated as changed (first save does the work).
+        assert!(!workspace_snapshot_content_unchanged(&path, &snap));
+
+        write_json(&path, &snap).unwrap();
+        // Byte-identical re-save → unchanged.
+        assert!(workspace_snapshot_content_unchanged(&path, &snap));
+        // THE REGRESSION: only materializedAt/counts differ (what happens on
+        // every real save) → still unchanged, so the seed does not restale.
+        let volatile_only = serde_json::json!({
+            "materializedAt": 9999,
+            "counts": {"documents": 1},
+            "documents": [{"id": "a", "title": "A"}],
+            "folders": [],
+            "wires": [],
+        });
+        assert!(workspace_snapshot_content_unchanged(&path, &volatile_only));
+        // Object key reordering is not a change (semantic compare, not textual).
+        let reordered = serde_json::json!({
+            "wires": [],
+            "materializedAt": 1000,
+            "folders": [],
+            "counts": {"documents": 1},
+            "documents": [{"title": "A", "id": "a"}],
+        });
+        assert!(workspace_snapshot_content_unchanged(&path, &reordered));
+        // A real content difference → changed, even with identical volatiles.
+        let changed = serde_json::json!({
+            "materializedAt": 1000,
+            "counts": {"documents": 1},
+            "documents": [{"id": "a", "title": "A"}, {"id": "b", "title": "B"}],
+            "folders": [],
+            "wires": [],
+        });
+        assert!(!workspace_snapshot_content_unchanged(&path, &changed));
+
+        fs::remove_dir_all(dir).unwrap();
+    }
+
+    /// The revision-churn regression guard: an identical workspace re-save (what
+    /// the UI does on every session join) must NOT bump content_revision — that
+    /// bump is what staled the rdf-seed marker and time-travel index every
+    /// launch and made the imported graph fail to load. A real change must
+    /// still bump. Real engine, real graph, real save path.
+    #[test]
+    fn identical_workspace_resave_does_not_bump_content_revision() {
+        let _serial = crate::tauri_runtime::profile_env_serial()
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos();
+        let profile = std::env::temp_dir().join(format!("garden-ws-noop-{nanos}"));
+        std::env::set_var("GARDEN_PROFILE_DIR", &profile);
+
+        let result = std::panic::catch_unwind(|| {
+            let app = crate::tauri_runtime::build_mock_app_for_tests(true);
+            let graph_id = "ws-noop-graph";
+            crate::graph_service::create_graph_service(
+                &app,
+                crate::graph_service::CreateGraphInput {
+                    title: "Workspace No-Op".to_string(),
+                    graph_id: Some(graph_id.to_string()),
+                    description: None,
+                    operation_id: None,
+                },
+            )
+            .expect("create graph");
+            let graph_dir = existing_graph_dir(&app, graph_id).expect("graph dir");
+
+            let save = |snapshot: serde_json::Value| {
+                save_workspace_with_lease(
+                    app.clone(),
+                    SaveWorkspaceInput {
+                        graph_id: graph_id.to_string(),
+                        ydoc_update_base64: String::new(),
+                        snapshot: Some(snapshot),
+                        trace_operation_id: None,
+                    },
+                )
+                .expect("save workspace");
+            };
+            let revision = || {
+                read_json::<GraphRecord>(&graph_dir.join("graph.json"))
+                    .expect("graph record")
+                    .content_revision
+            };
+
+            // Snapshots carry a fresh materializedAt on every save, exactly as
+            // the real UI does — the no-op detection must see past it.
+            let snapshot = |materialized_at: u64, docs: serde_json::Value| {
+                serde_json::json!({
+                    "materializedAt": materialized_at,
+                    "documents": docs,
+                    "folders": [],
+                    "wires": [],
+                })
+            };
+            let one_doc = || serde_json::json!([{"id": "d1", "title": "One"}]);
+
+            save(snapshot(1000, one_doc()));
+            let r1 = revision();
+            assert!(r1.is_some(), "first save establishes a content revision");
+
+            // Session-join re-save: identical content, NEW materializedAt →
+            // must not move the revision (this is the launch-churn regression).
+            save(snapshot(2000, one_doc()));
+            assert_eq!(
+                r1,
+                revision(),
+                "content-identical re-save must not bump content_revision despite a new materializedAt"
+            );
+
+            // A genuine content change must bump it.
+            save(snapshot(3000, serde_json::json!([
+                {"id": "d1", "title": "One"},
+                {"id": "d2", "title": "Two"},
+            ])));
+            assert_ne!(
+                r1,
+                revision(),
+                "a changed workspace must bump content_revision"
+            );
+        });
+
+        std::env::remove_var("GARDEN_PROFILE_DIR");
+        let _ = std::fs::remove_dir_all(&profile);
+        if let Err(payload) = result {
+            std::panic::resume_unwind(payload);
+        }
+    }
+}

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Mycl",
+  "mainBinaryName": "mycl",
+  "version": "0.1.0",
+  "identifier": "dev.sophia.garden",
+  "build": {
+    "frontendDist": "../frontend/dist",
+    "devUrl": "http://localhost:1420/",
+    "beforeDevCommand": "node scripts/shrubbery-frontend.mjs dev",
+    "beforeBuildCommand": "node scripts/shrubbery-frontend.mjs build"
+  },
+  "app": {
+    "windows": [],
+    "security": {
+      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:*; img-src 'self' data: blob: asset: http://asset.localhost http://127.0.0.1:* http://localhost:*; media-src 'self' data: blob: http://127.0.0.1:* http://localhost:*; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; style-src-attr 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval'; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-src 'self' blob:; frame-ancestors 'none'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["app", "dmg", "nsis"],
+    "category": "Productivity",
+    "shortDescription": "A local knowledge graph that people and agents write in together",
+    "longDescription": "Mycl is a local knowledge graph that people and agents write in together. The graphs are kept on this computer.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "macOS": {
+      "infoPlist": "Info.plist",
+      "signingIdentity": "-"
+    },
+    "windows": {
+      "nsis": {
+        "installerIcon": "icons/icon.ico",
+        "installMode": "currentUser"
+      }
+    }
+  }
+}

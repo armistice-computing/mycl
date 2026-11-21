@@ -1,0 +1,12 @@
+[project]
+name = "garden-pdf-runtime"
+version = "0.1.0"
+description = "Pinned local Python runtime for Garden PDF ingestion (Docling accurate pipeline)."
+requires-python = ">=3.10"
+dependencies = [
+    "docling==2.140.0",
+    # With onnxruntime present Docling runs text recognition on the models
+    # packaged inside rapidocr. Without it Docling falls back to the torch
+    # format, which rapidocr downloads from modelscope.cn.
+    "onnxruntime",
+]

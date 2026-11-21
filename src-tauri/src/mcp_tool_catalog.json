@@ -1,0 +1,3861 @@
+{
+  "tools": [
+    {
+      "name": "list_graphs",
+      "description": "List the graphs on this computer.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "get_user_location",
+      "description": "Return the active graph and document when available. In the offline owner process, falls back to this credential's 24-hour home graph (or the first local graph) with document_id=null.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "set_home_graph",
+      "description": "Set this named connector credential's default graph for 24 hours. Subsequent tools use it when graph_id is omitted. Pass an empty graph_id to clear it.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graph_id"
+        ],
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "check_document",
+      "description": "Probe whether a document ID is usable before writing. Returns status=exists with title/read_only, status=tombstoned when the ID cannot be reused, or status=available when it is safe to create.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "document_id"
+        ],
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "document_id": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "remember",
+      "description": "Save a lightweight numbered memory in the shared graph collection. Only content is required. Remembers the request actor when available; does not invent sources, classify a claim, or create private observer memory. Returns the stable number, content, rememberer and any derived-projection warnings. Use remember_batch or emporium_write for explicitly typed claims.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string",
+            "minLength": 1
+          },
+          "agent": {
+            "type": "string",
+            "description": "Optional Chronicle attribution label; normally supplied by the connection identity. Not an authorization claim."
+          },
+          "anchors": {
+            "type": "array",
+            "maxItems": 16,
+            "description": "Optional deliberate same-graph memory references. Does not change salience. Targets must exist in committed document state.",
+            "items": {
+              "type": "object",
+              "required": [
+                "documentId"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "documentId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "blockId": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "remember_batch",
+      "description": "Store many typed memory records (sophia-memory-core) in one atomic ingest. Each record requires content AND at least one source reference (I1); a provenance-less entry rejects the whole batch. Returns {ok, subjects, supersededSubjects?}.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "records"
+        ],
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "records": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Advanced typed memory records: content + source_refs/block_ids + optional scope/kind. This is not the lightweight remember operation."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "recall",
+      "description": "Read shared graph memories. Defaults to 8 recent active memories. Number lookup and substring search also include historical archives; rememberer filters authorship without changing visibility. Reading does not refresh activity.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "rememberer": {
+            "type": "string",
+            "description": "Exact recorded name (for example claude) or kind:name (agent:claude). Unknown imported authors are not inferred."
+          },
+          "number": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "query": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
+            "default": 8
+          },
+          "documentId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Only memories anchored to this document, including historical archives."
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Page offset for documentId-filtered recall. Follow page.nextOffset."
+          },
+          "diaryLimit": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 50,
+            "default": 4,
+            "description": "How many of the caller's own Diary entries ride along (the newest entry of every session label is kept, unless diaryWindowTokens is set). 0 omits the diary."
+          },
+          "diary_limit": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 50,
+            "description": "Compatibility spelling of diaryLimit. Prefer diaryLimit."
+          },
+          "diaryWindowTokens": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000000,
+            "description": "Read the Diary by when it was written: the newest entries from the last this-many tokens of work, at least 2, at most diaryLimit. Only entries with a clock stamp can be counted this way; an entry without one ends the window. Leave unset unless the installation keeps a token clock."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "diary",
+      "description": "Write one entry in your own Diary: dated, first-person, past-tense prose, at most four sentences, addressed to whoever continues your work. Written at the close of a session; \"Nothing to pass on.\" is a first-class honest entry. The author is the connection's agent identity; hand is an optional label for which session wrote it when an agent runs several at once; watch is an optional session reference. Optional anchors point the entry at documents or blocks. The last four entries ride recall, with the newest entry of every session label kept.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "entry"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "entry": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 1200,
+            "description": "Up to four sentences for the next one. An empty string is a valid entry: nothing for the next one."
+          },
+          "hand": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "A label for the session that wrote this, when the agent runs more than one (for example \"terminal\"). Optional."
+          },
+          "watch": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "An optional reference to the session, in any form the agent uses."
+          },
+          "agent": {
+            "type": "string",
+            "description": "Optional attribution label; the credential decides the author. Not an authorization claim."
+          },
+          "anchors": {
+            "type": "array",
+            "maxItems": 16,
+            "description": "Optional deliberate same-graph references, exactly as remember anchors: record refs, no wires, no salience effect. Targets must exist in committed document state.",
+            "items": {
+              "type": "object",
+              "required": [
+                "documentId"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "documentId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "blockId": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "read_diary",
+      "description": "Read an agent's Diary: the last limit entries (default 4, max 50), oldest to newest within the page. Defaults to your own diary; pass agent to read another agent's. Every agent connected to this graph can read every Diary in it.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "agent": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50,
+            "default": 4
+          },
+          "allHands": {
+            "type": "boolean",
+            "default": false,
+            "description": "Also include the newest entry of every session label that is not inside the last limit (what recall shows)."
+          }
+        }
+      }
+    },
+    {
+      "name": "attune",
+      "description": "Attune in one call: the Song, then recall (recent shared memories plus your own Diary), then the most important blocks, in that order. The result stays under maxChars (at most 40000); if it would not, the lowest-priority items are left out whole (important blocks, then the oldest Diary entries, then memories, then older verses) and `truncated` says what went. Read-only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "recallLimit": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 20,
+            "description": "Shared memories to include. Default 2."
+          },
+          "diaryLimit": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 50,
+            "description": "Your own Diary entries to include. Default 4."
+          },
+          "importantLimit": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 20,
+            "description": "Important blocks to include. Default 5."
+          },
+          "maxChars": {
+            "type": "integer",
+            "minimum": 4000,
+            "maximum": 40000,
+            "description": "Ceiling on the result's size. Default 40000."
+          },
+          "diaryWindowTokens": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000000,
+            "description": "Read the Diary by when it was written: the newest entries from the last this-many tokens of work, at least 2, at most diaryLimit. Only entries with a clock stamp can be counted this way; an entry without one ends the window. Leave unset unless the installation keeps a token clock."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "archive_memories",
+      "description": "Archive older local memories, keeping the most recently active memory records in the live queue.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "keep": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "emporium_read",
+      "description": "READ one object's full predicate span, rendered as {predicate: [values]} (N-Triples value forms). READ ONLY — writes go through emporium_write; the object surface's list/create/update/delete faces were cut on 2026-10-27. Returns {graphId, vocab, class, subject, predicates:{...}}.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graph_id",
+          "vocab",
+          "class",
+          "address"
+        ],
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "vocab": {
+            "type": "string",
+            "description": "The vocab name (e.g. 'emporium-bookmark', 'sophia-memory-core')."
+          },
+          "class": {
+            "type": "string",
+            "description": "The class name declared by the vocab's contract (e.g. 'Bookmark')."
+          },
+          "address": {
+            "type": "string",
+            "description": "A full subject IRI, or a bare localId minted through the class's subject_rule."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "music",
+      "description": "Read the local graph Song narrative with its rolling verses, counterpoints, and coda state.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "sing",
+      "description": "Write to the Song, this graph's evolving poem of the work. Form: one line of verse per line of text (a newline ends a line), and one blank line between stanzas; blank lines before the first line or after the last mark nothing. At most 14 lines; blank lines do not count, and a line is a line of verse, not a paragraph. Send real newlines, not the characters \\n. Do not use / as a mark: older verses do and are still read, so a / after a space or closing punctuation splits a line and a / ending a line ends a stanza; avoid slashes in your own words. The result echoes lineCount, stanzaCount and lines (\"\" between stanzas): check it. Modes: 'verse' (default) writes a new verse; the Song keeps three and the oldest goes to the archive. Sing at phase transitions: a structural insight, a cross-domain connection, a session boundary, a change in the nature of the work. 'counterpoint' adds a voice to an existing verse (verse_index 0, -1 or -2; a verse holds at most 3 voices, itself and 2 counterpoints) and answers it line by line: its first line follows the verse's first line, its second the second, so write about one line per line of that verse; a stanza break in either voice comes after the whole pair, and one long line lands whole after the verse's first line. 'coda' writes a closing passage that lasts 8 verse ejections and replaces any existing coda. Always call music() first and answer what is there. Supply non-empty text in verse (not content); invalid inputs, including more than 14 lines, are rejected without changing the Song.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "verse"
+        ],
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "verse": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The poem: one line of verse per line of text, with real newlines, and one blank line between stanzas."
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "verse",
+              "counterpoint",
+              "coda"
+            ]
+          },
+          "verse_index": {
+            "type": "integer",
+            "minimum": -2,
+            "maximum": 0
+          },
+          "verseIndex": {
+            "type": "integer",
+            "minimum": -2,
+            "maximum": 0
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "get_document_history",
+      "description": "Return local append-only document snapshots as a git-log-style history list.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "documentId"
+        ],
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "document_id": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "read_document_at_snapshot",
+      "description": "Read local document content at a stored snapshot as markdown text.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "documentId",
+          "snapshotId"
+        ],
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "document_id": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "snapshot_id": {
+            "type": "string"
+          },
+          "snapshotId": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "create_graph",
+      "description": "Create a local knowledge graph. Offline/sync-later callers may supply a client-minted graphIncarnation plus stable operationId; retrying that exact lifecycle identity is idempotent.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graph_id",
+          "title"
+        ],
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "graphIncarnation": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "graph_incarnation": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "operationId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "operation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "duplicate_graph",
+      "description": "Duplicate a local graph, preserving document IDs, folder structure, wires, artifacts, original bytes, and local RDF data.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "source_graph_id",
+          "new_graph_id"
+        ],
+        "properties": {
+          "source_graph_id": {
+            "type": "string"
+          },
+          "sourceGraphId": {
+            "type": "string"
+          },
+          "new_graph_id": {
+            "type": "string"
+          },
+          "newGraphId": {
+            "type": "string"
+          },
+          "new_title": {
+            "type": "string"
+          },
+          "newTitle": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "manage_graph",
+      "description": "Read local graph metadata, get graph statistics, or delete a local graph. Delete erases the graph directory from disk by default; pass hard=false to leave a tombstone instead.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graph_id",
+          "action"
+        ],
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "read",
+              "stats",
+              "delete"
+            ]
+          },
+          "hard": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "get_job_status",
+      "description": "Read local job status, progress, and result links for async local work.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "job_id"
+        ],
+        "properties": {
+          "job_id": {
+            "type": "string"
+          },
+          "jobId": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "get_job_result",
+      "description": "Read the JSON result payload for a completed local job.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "job_id"
+        ],
+        "properties": {
+          "job_id": {
+            "type": "string"
+          },
+          "jobId": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "reindex_graph",
+      "description": "Submit a local semantic index refresh job for a graph when the embedding model is already prepared.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graph_id"
+        ],
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string",
+            "description": "Compatibility spelling of graph_id."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "list_documents",
+      "description": "List compact document summaries with server-enforced cursor, item, and byte limits. Includes effective readOnly, derived, and readOnlyOwner. Document bodies and Y.Doc state are never returned by this directory operation.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graphId"
+        ],
+        "properties": {
+          "graphId": {
+            "type": "string"
+          },
+          "cursor": {
+            "type": [
+              "string",
+              "integer"
+            ]
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500
+          },
+          "maxBytes": {
+            "type": "integer",
+            "minimum": 8192,
+            "maximum": 262144
+          },
+          "graph_id": {
+            "type": "string",
+            "description": "Compatibility spelling of graphId. Prefer graphId."
+          },
+          "max_bytes": {
+            "type": "integer",
+            "minimum": 8192,
+            "maximum": 262144,
+            "description": "Compatibility spelling of maxBytes. Prefer maxBytes."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "get_workspace",
+      "description": "Return a compact page of the graph's folders and documents. Depth defaults to 1; depth=0 traverses all levels. Unlimited depth still respects cursor, item and serialized-byte limits: follow page.nextCursor until page.complete. Document entries include effective readOnly, derived and readOnlyOwner (geist for immutable server-owned views, null otherwise). Wires and document bodies are represented only by counts or summaries. Pages list folders before documents. counts documents/folders/artifacts/wires are graph-wide; counts.eligible is the total matching the folder, depth and type filters, not just this page.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graphId"
+        ],
+        "properties": {
+          "graphId": {
+            "type": "string"
+          },
+          "depth": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 5,
+            "default": 1,
+            "description": "0 means unlimited tree depth, not an unlimited response; positive depth is capped at 5. Follow pagination for the full result."
+          },
+          "foldersOnly": {
+            "type": "boolean"
+          },
+          "folderId": {
+            "type": "string"
+          },
+          "cursor": {
+            "type": [
+              "string",
+              "integer"
+            ]
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          },
+          "maxBytes": {
+            "type": "integer",
+            "minimum": 16384,
+            "maximum": 262144
+          },
+          "graph_id": {
+            "type": "string",
+            "description": "Compatibility spelling of graphId. Prefer graphId."
+          },
+          "max_bytes": {
+            "type": "integer",
+            "minimum": 16384,
+            "maximum": 262144,
+            "description": "Compatibility spelling of maxBytes. Prefer maxBytes."
+          },
+          "folder_id": {
+            "type": "string",
+            "description": "Compatibility spelling of folderId. Prefer folderId."
+          },
+          "folders_only": {
+            "type": "boolean",
+            "description": "Compatibility spelling of foldersOnly. Prefer foldersOnly."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "read_document",
+      "description": "Read a bounded character page from a local document projection. All formats, including ids_only, include effective readOnly, derived, and readOnlyOwner. readOnlyOwner=geist identifies an immutable server-owned view, not an imported document that can be made editable. Use offset/nextOffset for continuation or read_blocks for structural pagination. When the document has comments, the first page (offset 0) includes `comments`, oldest first: each with id, text, author, createdAt, resolved, and quotedText + blockId for the marked words (anchored:false when no mark is in the content). A comment stored in an unreadable form is listed as {id, unreadable:true}; a comments failure is reported as commentsError beside the content. The first page also lists the document's wires, all of them: `wireCount` {outgoing, incoming, total} and `wires`, each {id, direction (outgoing|incoming), predicate, blockId (this document's block, when the wire is block-level), otherDocumentId, otherTitle, otherBlockId and otherSnippet (the other block's current words, first 240 characters, when the other end is a block in this graph; otherBlockMissing:true when that block no longer exists), otherGraphId (cross-graph only), bidirectional (when true)}, document-level wires first and then in block order. includeWires:false leaves the list out.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graphId",
+          "documentId"
+        ],
+        "properties": {
+          "graphId": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "xml",
+              "markdown",
+              "ids_only",
+              "json"
+            ]
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "maxChars": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 262144
+          },
+          "cursor": {
+            "type": [
+              "string",
+              "integer"
+            ],
+            "description": "Block offset used only by ids_only format."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "description": "Block ID page size used only by ids_only format."
+          },
+          "graph_id": {
+            "type": "string",
+            "description": "Compatibility spelling of graphId. Prefer graphId."
+          },
+          "document_id": {
+            "type": "string",
+            "description": "Compatibility spelling of documentId. Prefer documentId."
+          },
+          "max_chars": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 262144,
+            "description": "Compatibility spelling of maxChars. Prefer maxChars."
+          },
+          "includeMemories": {
+            "type": "boolean",
+            "description": "Include up to five anchored-memory previews and a continuation hint; no attention changes.",
+            "default": false
+          },
+          "includeWires": {
+            "type": "boolean",
+            "description": "List the document's wires on the first page (default true).",
+            "default": true
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "write_document",
+      "description": "Write a whole document: create it when documentId is new, or replace its contents when it exists (the title is kept unless you pass one). To create only and never replace, pass expectedRevision 0: the write is refused if the document already exists. Pass parentId to put it in a folder. Accepts plain text, markdown, HTML, or TipTap XML as content, or a canonical TipTap JSON document without a lossy string roundtrip. Inline valuations: Markdown/plain end-of-line {!N}, {!,+N}, {!N,-M}; XML data-val-importance/data-val-valence. Code examples remain literal. Requires salience.write when directives are present; inspect valuations for partial failures.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "document_id": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "parentId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Folder to put the document in. A new document is created there; an existing one is moved there. null is the top level. Leave it out and a new document goes to the top level while an existing one stays where it is."
+          },
+          "parent_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Compatibility spelling of parentId. Prefer parentId."
+          },
+          "tiptapJson": {
+            "type": "object"
+          },
+          "tiptap_json": {
+            "type": "object"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "plain",
+              "markdown",
+              "html",
+              "xml"
+            ]
+          },
+          "comments": {
+            "type": "object"
+          },
+          "await_durable": {
+            "type": "boolean"
+          },
+          "awaitDurable": {
+            "type": "boolean"
+          },
+          "expectedRevision": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "expected_revision": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "force": {
+            "type": "boolean",
+            "description": "Bypass the expectedRevision staleness guard explicitly. The override is recorded on the document's chronicle (lastForcedAt / lastForcedBy) — possible, never silent."
+          },
+          "agent": {
+            "type": "string",
+            "description": "Name of the agent making this write (e.g. beta). Recorded as the document's updatedBy / createdBy in the chronicle; the credential it rides on is kept as provenance. Omit for a human owner write."
+          }
+        },
+        "allOf": [
+          {
+            "anyOf": [
+              {
+                "required": [
+                  "graph_id"
+                ]
+              },
+              {
+                "required": [
+                  "graphId"
+                ]
+              }
+            ]
+          },
+          {
+            "anyOf": [
+              {
+                "required": [
+                  "document_id"
+                ]
+              },
+              {
+                "required": [
+                  "documentId"
+                ]
+              }
+            ]
+          },
+          {
+            "oneOf": [
+              {
+                "required": [
+                  "content"
+                ]
+              },
+              {
+                "required": [
+                  "tiptapJson"
+                ]
+              },
+              {
+                "required": [
+                  "tiptap_json"
+                ]
+              }
+            ]
+          }
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "read_blocks",
+      "description": "Read paginated local document blocks from persisted block projections.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graphId",
+          "documentId"
+        ],
+        "properties": {
+          "graphId": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          },
+          "blockId": {
+            "type": "string"
+          },
+          "includeIds": {
+            "type": "boolean"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "markdown",
+              "text",
+              "xml"
+            ]
+          },
+          "graph_id": {
+            "type": "string",
+            "description": "Compatibility spelling of graphId. Prefer graphId."
+          },
+          "document_id": {
+            "type": "string",
+            "description": "Compatibility spelling of documentId. Prefer documentId."
+          },
+          "block_id": {
+            "type": "string",
+            "description": "Compatibility spelling of blockId. Prefer blockId."
+          },
+          "include_ids": {
+            "type": "boolean",
+            "description": "Compatibility spelling of includeIds. Prefer includeIds."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "document_digest",
+      "description": "Return a compact local document digest from persisted projections and the graph's wire snapshots.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graphId",
+          "documentId"
+        ],
+        "properties": {
+          "graphId": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "topValued": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 20
+          },
+          "graph_id": {
+            "type": "string",
+            "description": "Compatibility spelling of graphId. Prefer graphId."
+          },
+          "document_id": {
+            "type": "string",
+            "description": "Compatibility spelling of documentId. Prefer documentId."
+          },
+          "top_valued": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 20,
+            "description": "Compatibility spelling of topValued. Prefer topValued."
+          },
+          "includeMemories": {
+            "type": "boolean",
+            "description": "Include up to five anchored-memory previews and a continuation hint; no attention changes.",
+            "default": false
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "value",
+      "description": "Assign durable importance, valence, and tags to blocks. Importance 0 reduces accumulated importance by 80% (starting from the unvalued baseline when needed) without refreshing attention, even with valence. Positive importance accumulates. Returns combined composite salience including human ratings and wires.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "document_id": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "block_id": {
+            "type": "string"
+          },
+          "blockId": {
+            "type": "string"
+          },
+          "importance": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 5
+          },
+          "valence": {
+            "type": "integer",
+            "minimum": -5,
+            "maximum": 5
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "operationId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9._:-]+$",
+            "description": "Stable source operation identity. Reuse the same value for an at-least-once retry."
+          },
+          "operation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "valuationEventId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "valuation_event_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "atMs": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "at_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "valuations": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "get_block_values",
+      "description": "Retrieve combined composite salience graph-wide, document-scoped, or block-scoped, including baseline scores for existing unvalued blocks. Raw/cumulative ratings remain distinct from computed salience. Attention age uses last qualifying valuation, otherwise document creation then graph creation; edits and zero-importance ratings do not renew it.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "document_id": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "block_id": {
+            "type": "string"
+          },
+          "blockId": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "min_score": {
+            "type": "number"
+          },
+          "minScore": {
+            "type": "number"
+          },
+          "valence": {
+            "type": "string",
+            "enum": [
+              "positive",
+              "negative"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "get_values",
+      "description": "TRANSPORT (Settings): read the graph's valuation config. Not in agent profiles; the importance settings panel reads through this. Return the local valuation scoring configuration for a graph.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "revaluate",
+      "description": "TRANSPORT (Settings): update the graph's valuation config. Not in agent profiles; the importance settings panel saves through this. Update the local valuation scoring configuration, archiving the previous config in the local value store.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "importance_prompt": {
+            "type": "string"
+          },
+          "importancePrompt": {
+            "type": "string"
+          },
+          "valence_prompt": {
+            "type": "string"
+          },
+          "valencePrompt": {
+            "type": "string"
+          },
+          "weights": {
+            "type": "string",
+            "description": "Weights to change, as \"key: value\" lines or a JSON object, e.g. \"importance_weight: 0.4\\nhalf_life_days: 14\". Unknown keys or non-numeric values reject the whole call; call get_values for the key names."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "get_important_blocks",
+      "description": "Return highest-scored local blocks with content and document titles. importance and valence are the person's own rating and the agents' ratings combined, the same values the person sees; userImportance and userValence give the person's own rating when there is one. documentId may name a document or a folder; folders include all descendant documents, ranked together before applying limit.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "document_id": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          },
+          "valence": {
+            "type": "string",
+            "enum": [
+              "positive",
+              "negative"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "get_block",
+      "description": "Read one local document block by ID from persisted block projections.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graphId",
+          "documentId",
+          "blockId"
+        ],
+        "properties": {
+          "graphId": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "blockId": {
+            "type": "string"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "xml",
+              "markdown",
+              "text"
+            ]
+          },
+          "graph_id": {
+            "type": "string",
+            "description": "Compatibility spelling of graphId. Prefer graphId."
+          },
+          "document_id": {
+            "type": "string",
+            "description": "Compatibility spelling of documentId. Prefer documentId."
+          },
+          "block_id": {
+            "type": "string",
+            "description": "Compatibility spelling of blockId. Prefer blockId."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "query_blocks",
+      "description": "Query local document blocks by projected type, heading level, checked state, or text content.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graphId",
+          "documentId"
+        ],
+        "properties": {
+          "graphId": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "blockType": {
+            "type": "string"
+          },
+          "headingLevel": {
+            "type": "integer"
+          },
+          "checked": {
+            "type": "boolean"
+          },
+          "textContains": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          },
+          "queries": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "graph_id": {
+            "type": "string",
+            "description": "Compatibility spelling of graphId. Prefer graphId."
+          },
+          "document_id": {
+            "type": "string",
+            "description": "Compatibility spelling of documentId. Prefer documentId."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "insert_blocks",
+      "description": "Insert one or more blocks into a local document through the desktop Yjs document CRDT. Accepts plain text, markdown, HTML, or TipTap XML content; or a structured blocks array. Optionally inserts after/before a reference blockId, or at a given index. Inline valuations: Markdown/plain end-of-line {!N}, {!,+N}, {!N,-M}; XML data-val-importance/data-val-valence. Code examples remain literal. Requires salience.write when directives are present; inspect valuations for partial failures. With artifactId or artifactPath (a file under the graph's roots) the blocks come from that artifact instead of content: region (L10-L20, p12, b100-200, m:path, j:/pointer, or an object) selects the part, absent means the whole text (at most 1 MiB, 2,000 blocks); as = paragraphs | code | quote (default code for code files, paragraphs otherwise). Every block gets a cites wire to its own lines and the document one authoredBy wire to the artifact; the artifact's mode does not change. Needs artifacts.read and wires.write beside documents.write.crdt, and artifacts.write for the path form.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graphId",
+          "documentId"
+        ],
+        "properties": {
+          "graphId": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "plain",
+              "markdown",
+              "html",
+              "xml"
+            ]
+          },
+          "blocks": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "tiptapJson": {
+            "type": "object"
+          },
+          "blockId": {
+            "type": "string"
+          },
+          "index": {
+            "type": "integer"
+          },
+          "position": {
+            "type": "string",
+            "enum": [
+              "after",
+              "before"
+            ]
+          },
+          "graph_id": {
+            "type": "string",
+            "description": "Compatibility spelling of graphId. Prefer graphId."
+          },
+          "document_id": {
+            "type": "string",
+            "description": "Compatibility spelling of documentId. Prefer documentId."
+          },
+          "block_id": {
+            "type": "string",
+            "description": "Compatibility spelling of blockId. Prefer blockId."
+          },
+          "expectedRevision": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "expected_revision": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "description": "Compatibility spelling of expectedRevision. Prefer expectedRevision."
+          },
+          "force": {
+            "type": "boolean"
+          },
+          "agent": {
+            "type": "string",
+            "description": "Chronicle attribution label; not an authorization claim."
+          },
+          "tiptap_json": {
+            "type": "object",
+            "description": "Compatibility spelling of tiptapJson. Prefer tiptapJson."
+          },
+          "artifactId": {
+            "type": "string",
+            "description": "Pull the blocks from this artifact (the content comes from it, not from content/blocks)."
+          },
+          "artifact_id": {
+            "type": "string",
+            "description": "Compatibility spelling of artifactId."
+          },
+          "artifactPath": {
+            "type": "string",
+            "description": "A file under the graph's roots in place of artifactId; its referenced record is found or made."
+          },
+          "artifact_path": {
+            "type": "string",
+            "description": "Compatibility spelling of artifactPath."
+          },
+          "region": {
+            "type": [
+              "string",
+              "object"
+            ],
+            "description": "The part of the artifact to pull: short form or { kind, ... }. Absent: the whole text."
+          },
+          "as": {
+            "type": "string",
+            "enum": [
+              "paragraphs",
+              "code",
+              "quote"
+            ],
+            "description": "How the pulled text becomes blocks."
+          },
+          "operationId": {
+            "type": "string",
+            "description": "Idempotency key: a retry with the same operationId replays the insert and, for a pull, names the same blocks and makes no second cites wires."
+          },
+          "operation_id": {
+            "type": "string",
+            "description": "Compatibility spelling of operationId."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "update_blocks",
+      "description": "Update attributes on existing blocks (not content replacement). data-val-importance/data-val-valence attributes apply inline valuations; requires salience.write. Inspect valuations for partial failures.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graphId",
+          "documentId"
+        ],
+        "properties": {
+          "graphId": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "edits": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "blockId",
+                "attrs"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "blockId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "block_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "x-garden-alias-for": "blockId"
+                },
+                "attrs": {
+                  "type": "object"
+                },
+                "attributes": {
+                  "type": "object",
+                  "x-garden-alias-for": "attrs"
+                }
+              }
+            }
+          },
+          "blockId": {
+            "type": "string"
+          },
+          "attrs": {
+            "type": "object"
+          },
+          "graph_id": {
+            "type": "string",
+            "description": "Compatibility spelling of graphId. Prefer graphId."
+          },
+          "document_id": {
+            "type": "string",
+            "description": "Compatibility spelling of documentId. Prefer documentId."
+          },
+          "block_id": {
+            "type": "string",
+            "description": "Compatibility spelling of blockId. Prefer blockId."
+          },
+          "expectedRevision": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "expected_revision": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "description": "Compatibility spelling of expectedRevision. Prefer expectedRevision."
+          },
+          "force": {
+            "type": "boolean"
+          },
+          "agent": {
+            "type": "string",
+            "description": "Chronicle attribution label; not an authorization claim."
+          },
+          "updates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "blockId",
+                "attrs"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "blockId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "block_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "x-garden-alias-for": "blockId"
+                },
+                "attrs": {
+                  "type": "object"
+                },
+                "attributes": {
+                  "type": "object",
+                  "x-garden-alias-for": "attrs"
+                }
+              }
+            },
+            "description": "Compatibility spelling of edits. Prefer edits."
+          },
+          "attributes": {
+            "type": "object",
+            "description": "Compatibility spelling of attrs. Prefer attrs."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "edit_block_text",
+      "description": "Apply character-level insert/delete operations to a block's text through the desktop Yjs document CRDT. Operations are sorted by offset descending and applied in one transaction.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graphId",
+          "documentId",
+          "blockId",
+          "operations"
+        ],
+        "properties": {
+          "graphId": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "blockId": {
+            "type": "string"
+          },
+          "operations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "type",
+                "offset"
+              ],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "insert",
+                    "delete"
+                  ]
+                },
+                "offset": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "text": {
+                  "type": "string"
+                },
+                "length": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "attrs": {
+                  "type": [
+                    "object",
+                    "null"
+                  ]
+                },
+                "inheritFormat": {
+                  "type": "boolean"
+                },
+                "inherit_format": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "graph_id": {
+            "type": "string",
+            "description": "Compatibility spelling of graphId. Prefer graphId."
+          },
+          "document_id": {
+            "type": "string",
+            "description": "Compatibility spelling of documentId. Prefer documentId."
+          },
+          "block_id": {
+            "type": "string",
+            "description": "Compatibility spelling of blockId. Prefer blockId."
+          },
+          "expectedRevision": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "expected_revision": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "description": "Compatibility spelling of expectedRevision. Prefer expectedRevision."
+          },
+          "force": {
+            "type": "boolean"
+          },
+          "agent": {
+            "type": "string",
+            "description": "Chronicle attribution label; not an authorization claim."
+          },
+          "ops": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "type",
+                "offset"
+              ],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "insert",
+                    "delete"
+                  ]
+                },
+                "offset": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "text": {
+                  "type": "string"
+                },
+                "length": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "attrs": {
+                  "type": [
+                    "object",
+                    "null"
+                  ]
+                },
+                "inheritFormat": {
+                  "type": "boolean"
+                },
+                "inherit_format": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            },
+            "description": "Compatibility spelling of operations. Prefer operations.",
+            "x-garden-alias-for": "operations"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "edit_comment",
+      "description": "Create, resolve, or delete a comment in a local document Y.Doc comments map, optionally anchoring it to matching block text with a commentMark.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "action",
+          "comment_id",
+          "document_id"
+        ],
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "document_id": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "comment_id": {
+            "type": "string"
+          },
+          "commentId": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "set",
+              "resolve",
+              "delete"
+            ]
+          },
+          "text": {
+            "type": "string"
+          },
+          "author": {
+            "type": "string"
+          },
+          "block_id": {
+            "type": "string"
+          },
+          "blockId": {
+            "type": "string"
+          },
+          "find": {
+            "type": "string"
+          },
+          "occurrence": {
+            "type": "integer"
+          },
+          "quoted_text": {
+            "type": "string"
+          },
+          "quotedText": {
+            "type": "string"
+          },
+          "resolved": {
+            "type": "boolean"
+          },
+          "agent": {
+            "type": "string",
+            "description": "Chronicle attribution label; not an authorization claim."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "delete_blocks",
+      "description": "Delete one or more blocks from a local document by id through the desktop Yjs document CRDT.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graphId",
+          "documentId"
+        ],
+        "properties": {
+          "graphId": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "blockIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "blockId": {
+            "type": "string"
+          },
+          "graph_id": {
+            "type": "string",
+            "description": "Compatibility spelling of graphId. Prefer graphId."
+          },
+          "document_id": {
+            "type": "string",
+            "description": "Compatibility spelling of documentId. Prefer documentId."
+          },
+          "block_id": {
+            "type": "string",
+            "description": "Compatibility spelling of blockId. Prefer blockId."
+          },
+          "expectedRevision": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "expected_revision": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "description": "Compatibility spelling of expectedRevision. Prefer expectedRevision."
+          },
+          "force": {
+            "type": "boolean"
+          },
+          "agent": {
+            "type": "string",
+            "description": "Chronicle attribution label; not an authorization claim."
+          },
+          "block_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Compatibility spelling of blockIds. Prefer blockIds."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "search_documents",
+      "description": "Search local document titles and IDs in a graph.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graphId"
+        ],
+        "properties": {
+          "graphId": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "queries": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "exact",
+              "substring"
+            ]
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "graph_id": {
+            "type": "string",
+            "description": "Compatibility spelling of graphId. Prefer graphId."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "search_blocks",
+      "description": "Search local document block content. Default hybrid mode blends reciprocal-rank lexical/semantic relevance with a bounded salience boost before limiting results. Explicit lexical and semantic modes keep pure relevance ordering. Results include compositeScore (null when unavailable); hybrid also includes relevanceScore and salienceBoost. Salience failures fall back to relevance with an explicit error.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graphId"
+        ],
+        "properties": {
+          "graphId": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "queries": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "hybrid",
+              "lexical",
+              "semantic"
+            ]
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "docFilter": {
+            "type": "string"
+          },
+          "graph_id": {
+            "type": "string",
+            "description": "Compatibility spelling of graphId. Prefer graphId."
+          },
+          "doc_filter": {
+            "type": "string",
+            "description": "Compatibility spelling of docFilter. Prefer docFilter."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "list_wire_predicates",
+      "description": "List built-in local wire predicates plus custom predicates found in the graph's wire snapshots.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graphId"
+        ],
+        "properties": {
+          "graphId": {
+            "type": "string"
+          },
+          "graph_id": {
+            "type": "string",
+            "description": "Compatibility spelling of graphId. Prefer graphId."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "get_wires",
+      "description": "Return active local wires connected to a document, or, with artifactId or artifactPath in place of documentId, every wire that points at that artifact (the question from the repository side): each with its source document, block and the block's current words (sourceText), targetRegion and fileHash; with line, only line regions holding that line plus region-less wires flagged wholeFile. artifactPath finds an existing referenced record only and makes nothing. An artifact wire's region text is not inlined (regionProtected): read it with read_artifact and the wire id.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graphId"
+        ],
+        "properties": {
+          "graphId": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "outgoing",
+              "incoming",
+              "both"
+            ]
+          },
+          "predicate": {
+            "type": "string"
+          },
+          "graph_id": {
+            "type": "string",
+            "description": "Compatibility spelling of graphId. Prefer graphId."
+          },
+          "document_id": {
+            "type": "string",
+            "description": "Compatibility spelling of documentId. Prefer documentId."
+          },
+          "artifactId": {
+            "type": "string",
+            "description": "Ask about this artifact instead of a document."
+          },
+          "artifact_id": {
+            "type": "string",
+            "description": "Compatibility spelling of artifactId."
+          },
+          "artifactPath": {
+            "type": "string",
+            "description": "Ask about the file at this path (under the roots); existing referenced records only."
+          },
+          "artifact_path": {
+            "type": "string",
+            "description": "Compatibility spelling of artifactPath."
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "With an artifact: only wires whose line region holds this line, plus whole-file wires."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "create_wires",
+      "description": "Create one or more local semantic wires in the graph, through its CRDT surface. A wire to an artifact may name a region of it: region as the short form L10-L20 (lines, 1-based inclusive), p12 (pdf page), b100-200 (bytes, end exclusive), m:path/in/zip (member) or j:/pointer (json), or targetRegion as an object; the server reads the region, hashes it and sets fileHash (a client value is ignored); an out-of-range or wrong-kind region refuses the wire. artifactPath (absolute, or relative to one of the graph's roots) in place of a target id finds the referenced record for that file or makes one. The region's text is read through read_artifact with the wire id, never through documents.read.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "source_document_id": {
+            "type": "string"
+          },
+          "sourceDocumentId": {
+            "type": "string"
+          },
+          "source_block_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sourceBlockId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "source_mark_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sourceMarkId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "target_graph_id": {
+            "type": "string"
+          },
+          "targetGraphId": {
+            "type": "string"
+          },
+          "target_document_id": {
+            "type": "string",
+            "description": "Document target. Exactly one document or artifact target is required."
+          },
+          "targetDocumentId": {
+            "type": "string",
+            "description": "Document target. Exactly one document or artifact target is required."
+          },
+          "target_artifact_id": {
+            "type": "string",
+            "description": "Artifact target. Exactly one document or artifact target is required."
+          },
+          "targetArtifactId": {
+            "type": "string",
+            "description": "Artifact target. Exactly one document or artifact target is required."
+          },
+          "target_block_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "targetBlockId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "target_mark_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "targetMarkId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "predicate": {
+            "type": "string"
+          },
+          "bidirectional": {
+            "type": "boolean"
+          },
+          "wire_id": {
+            "type": "string"
+          },
+          "wireId": {
+            "type": "string"
+          },
+          "wires": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "target_document_id": {
+                  "type": "string",
+                  "description": "Document target. Exactly one document or artifact target is required per wire."
+                },
+                "targetDocumentId": {
+                  "type": "string",
+                  "description": "Document target. Exactly one document or artifact target is required per wire."
+                },
+                "target_artifact_id": {
+                  "type": "string",
+                  "description": "Artifact target. Exactly one document or artifact target is required per wire."
+                },
+                "targetArtifactId": {
+                  "type": "string",
+                  "description": "Artifact target. Exactly one document or artifact target is required per wire."
+                },
+                "region": {
+                  "type": [
+                    "string",
+                    "object"
+                  ],
+                  "description": "Region of the target artifact: short form (L10-L20, p12, b100-200, m:path, j:/pointer) or { kind, ... }."
+                },
+                "target_region": {
+                  "type": "object",
+                  "description": "Region object { kind: text-lines|pdf-page|pdf-selector|bytes|member|json-pointer, ... }."
+                },
+                "targetRegion": {
+                  "type": "object",
+                  "description": "Region object { kind: text-lines|pdf-page|pdf-selector|bytes|member|json-pointer, ... }."
+                },
+                "artifact_path": {
+                  "type": "string",
+                  "description": "A file under the graph's roots, in place of target_artifact_id: its referenced record is found or made."
+                },
+                "artifactPath": {
+                  "type": "string",
+                  "description": "A file under the graph's roots, in place of targetArtifactId: its referenced record is found or made."
+                }
+              }
+            }
+          },
+          "agent": {
+            "type": "string",
+            "description": "Chronicle attribution label; not an authorization claim."
+          },
+          "region": {
+            "type": [
+              "string",
+              "object"
+            ],
+            "description": "Region of the target artifact: short form (L10-L20, p12, b100-200, m:path, j:/pointer) or { kind, ... }."
+          },
+          "target_region": {
+            "type": "object",
+            "description": "Region object { kind: text-lines|pdf-page|pdf-selector|bytes|member|json-pointer, ... }."
+          },
+          "targetRegion": {
+            "type": "object",
+            "description": "Region object { kind: text-lines|pdf-page|pdf-selector|bytes|member|json-pointer, ... }."
+          },
+          "artifact_path": {
+            "type": "string",
+            "description": "A file under the graph's roots, in place of target_artifact_id: its referenced record is found or made."
+          },
+          "artifactPath": {
+            "type": "string",
+            "description": "A file under the graph's roots, in place of targetArtifactId: its referenced record is found or made."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "traverse_wires",
+      "description": "Traverse the graph's wires from a document using bounded BFS.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "document_id"
+        ],
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "document_id": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "max_depth": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 6
+          },
+          "maxDepth": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 6
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "outgoing",
+              "incoming",
+              "both"
+            ]
+          },
+          "predicate": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "create_document",
+      "description": "Create a local document in the graph, through its CRDT surface.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graphId",
+          "title"
+        ],
+        "properties": {
+          "graphId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "parentId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "order": {
+            "type": "number"
+          },
+          "documentKind": {
+            "type": "null",
+            "description": "Legacy frontend placeholder only. Non-null metadata is not supported by this handler."
+          },
+          "dailyNoteDate": {
+            "type": "null",
+            "description": "Legacy frontend placeholder only. Non-null metadata is not supported by this handler."
+          },
+          "dailyNoteTimeZone": {
+            "type": "null",
+            "description": "Legacy frontend placeholder only. Non-null metadata is not supported by this handler."
+          },
+          "agent": {
+            "type": "string",
+            "description": "Chronicle attribution label; not an authorization claim."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "delete_document",
+      "description": "Delete a local document from the graph, through its CRDT surface.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graphId",
+          "documentId"
+        ],
+        "properties": {
+          "graphId": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "agent": {
+            "type": "string",
+            "description": "Chronicle attribution label; not an authorization claim."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "create_folder",
+      "description": "Create a local sidebar folder in the graph, through its CRDT surface.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graphId",
+          "name"
+        ],
+        "properties": {
+          "graphId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "folderId": {
+            "type": "string"
+          },
+          "parentId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "section": {
+            "type": "string",
+            "enum": [
+              "documents",
+              "artifacts"
+            ]
+          },
+          "order": {
+            "type": "number"
+          },
+          "agent": {
+            "type": "string",
+            "description": "Chronicle attribution label; not an authorization claim."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "move_documents",
+      "description": "Move documents to a folder, or archive them into targetGraphId. Cross-graph moves preserve document IDs, content, comments and saved history, and deliberately discard wires and valuations. Both graphs must exist. Up to 100 documents per cross-graph call; existing or tombstoned destination IDs, local asset dependencies and unsupported sidecars are refused before source deletion. Interrupted transfers retain a recovery receipt.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graphId",
+          "documentIds"
+        ],
+        "properties": {
+          "graphId": {
+            "type": "string"
+          },
+          "documentIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "targetGraphId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Optional existing destination graph. Omit for a same-graph folder move; parentId names a destination folder."
+          },
+          "parentId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "order": {
+            "type": "number"
+          },
+          "agent": {
+            "type": "string",
+            "description": "Chronicle attribution label; not an authorization claim."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "move_folder",
+      "description": "Move a local sidebar folder under another folder, or to root, in the graph, through its CRDT surface.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graph_id",
+          "folder_id"
+        ],
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "folder_id": {
+            "type": "string"
+          },
+          "folderId": {
+            "type": "string"
+          },
+          "new_parent_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "newParentId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "new_order": {
+            "type": "number"
+          },
+          "newOrder": {
+            "type": "number"
+          },
+          "parentId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Compatibility spelling of newParentId. Prefer newParentId."
+          },
+          "parent_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Compatibility spelling of newParentId. Prefer newParentId."
+          },
+          "order": {
+            "type": "number",
+            "description": "Compatibility spelling of newOrder. Prefer newOrder."
+          },
+          "agent": {
+            "type": "string",
+            "description": "Chronicle attribution label; not an authorization claim."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "rename",
+      "description": "Rename a local graph, document, or folder without changing its ID. A graph rename may also carry a description (null clears it).",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graph_id",
+          "entity_type",
+          "new_name"
+        ],
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "entity_type": {
+            "type": "string",
+            "enum": [
+              "graph",
+              "document",
+              "folder"
+            ]
+          },
+          "entityType": {
+            "type": "string",
+            "enum": [
+              "graph",
+              "document",
+              "folder"
+            ]
+          },
+          "entity_id": {
+            "type": "string"
+          },
+          "entityId": {
+            "type": "string"
+          },
+          "new_name": {
+            "type": "string"
+          },
+          "newName": {
+            "type": "string"
+          },
+          "agent": {
+            "type": "string",
+            "description": "Chronicle attribution label; not an authorization claim."
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Graphs only: a new description; null clears it."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "delete",
+      "description": "Delete local graph, document, folder, block, or wire targets through the provider/CRDT path for each target type.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "documents",
+              "blocks",
+              "folder",
+              "wires",
+              "graph"
+            ]
+          },
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "document_id": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "document_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "documentIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "block_id": {
+            "type": "string"
+          },
+          "blockId": {
+            "type": "string"
+          },
+          "block_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "blockIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "folder_id": {
+            "type": "string"
+          },
+          "folderId": {
+            "type": "string"
+          },
+          "wire_id": {
+            "type": "string"
+          },
+          "wireId": {
+            "type": "string"
+          },
+          "wire_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "wireIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "cascade": {
+            "type": "boolean"
+          },
+          "hard": {
+            "type": "boolean"
+          },
+          "expectedRevision": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "expected_revision": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "description": "Compatibility spelling of expectedRevision. Prefer expectedRevision."
+          },
+          "force": {
+            "type": "boolean"
+          },
+          "agent": {
+            "type": "string",
+            "description": "Chronicle attribution label; not an authorization claim."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "make_document_editable",
+      "description": "Clear readOnly for an ordinary uploaded or ingested document. Immutable derived Geist views cannot be made editable; those requests fail without changing their flags or contents. Check derived/readOnlyOwner on read_document or get_workspace results before offering this action.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "document_id"
+        ],
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "document_id": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "agent": {
+            "type": "string",
+            "description": "Chronicle attribution label; not an authorization claim."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "upload_artifact",
+      "description": "Copy a local file into the graph. mode 'attach' keeps the bytes, hashes and lightly indexes them, makes no blocks, and returns the artifact record at once (artifactId, sha256, index). mode 'digest' submits the async ingestion job that makes blocks; poll get_job_status and read the blocks with get_job_result. With no mode, markdown and plain text digest and everything else attaches. An attached artifact can be digested later with ingest_artifact.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "file_path"
+        ],
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "file_path": {
+            "type": "string"
+          },
+          "filePath": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "attach",
+              "digest"
+            ]
+          },
+          "parent_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "parentId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "reference_artifact",
+      "description": "Reference a file on this computer without copying it: the file must sit under one of the graph owner's allowed roots (Settings → Files). The record keeps the path, the hash of the bytes as seen now, a light index, and the repository and commit when the file is in a git checkout under the root. Nothing is copied; read_artifact re-opens the file each time and says ok, stale, missing or denied.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "path"
+        ],
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "parent_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "parentId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "ingest_artifact",
+      "description": "Submit an async local job to import a stored artifact original-byte record as a document, or update an already auto-ingested upload document.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "artifact_id"
+        ],
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "artifact_id": {
+            "type": "string"
+          },
+          "artifactId": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "ingest",
+              "import"
+            ]
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "crdt_operation",
+      "description": "Enqueue a typed local CRDT operation for the desktop runtime to apply.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graphId",
+          "kind"
+        ],
+        "properties": {
+          "graphId": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "payload": {
+            "type": "object"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "flush_crdt",
+      "description": "TRANSPORT: force a durable CRDT flush. Not in agent profiles; the house's live probes and the organism use it as a durable boundary. Flush pending local graph and document CRDT state to disk.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graphId"
+        ],
+        "properties": {
+          "graphId": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "sparql_query",
+      "description": "Run a read SPARQL query against a local graph.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graphId",
+          "query"
+        ],
+        "properties": {
+          "graphId": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "timeoutMs": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Requested deadline in milliseconds; clamped by the server."
+          },
+          "maxRows": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Requested materialized row/triple ceiling; clamped by the server."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "sparql_query_named",
+      "description": "Run one of a class's CANONICAL named queries (T2 query face, item 11) — byId(subject), currentHeads({asOf?}), lineageOf(subject), countBy(attr) — derived from the class's declared SHACL shape + MaterializationSignature (never a hand-maintained per-class query). Scoping comes from the class's declared store_target ONLY (class_dispatch), so the partitioned-store silent zero is structurally impossible. Membrane-ed classes (e.g. sophia-memory-core): no 'observer' → the shared commons only; with 'observer' → commons ∪ that observer's membrane (RATIFIED default). currentHeads is the one server-authoritative current-head reader — one 'current head' semantics everywhere. Returns {graphId, vocab, class, queryName, variables, rows, warnings?} — a query returning zero rows for a shape reason (wrong scope, undeclared attr, missing subject) always says so in 'warnings' or as a structured rejection, never a bare empty result.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graph_id",
+          "vocab",
+          "class",
+          "query_name"
+        ],
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "vocab": {
+            "type": "string",
+            "description": "The vocab name (e.g. 'sophia-memory-core', 'emporium-bookmark')."
+          },
+          "class": {
+            "type": "string",
+            "description": "The class name declared by the vocab's contract (e.g. 'MemoryRecord')."
+          },
+          "query_name": {
+            "type": "string",
+            "enum": [
+              "byId",
+              "currentHeads",
+              "lineageOf",
+              "countBy"
+            ]
+          },
+          "queryName": {
+            "type": "string",
+            "description": "Alias for 'query_name'."
+          },
+          "params": {
+            "type": "object",
+            "description": "Query-specific arguments: 'subject' (a full subject IRI — byId, lineageOf), 'asOf' (epoch-millis or ISO-8601 datetime — currentHeads; omitted = the live read), 'attr' (a declared predicate CURIE/local-name/URI — countBy)."
+          },
+          "observer": {
+            "type": "string",
+            "description": "A per-agent membrane. Default = the shared commons (RATIFIED: no observer ⇒ commons only). Ignored, with a warning, on a class with no observer membrane."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "emporium_write",
+      "description": "T-W item 1 — the MCP write surface over the existing spine (I1 gate, SHACL, minting, journal, contested lineage). 'vocab' names ONE registered vocab; 'records' are flat JSON objects with NO 'subject'/'vocab' field (the client never mints identity — Law 2; use 'clientRef' for correlation). Dispatches on the vocab's resolved write_target: 'sophia-memory-core' (a membrane-ed class) routes through the memory lane — records use the SAME camelCase shape 'remember'/'remember_batch' accept (content/scope/kind/contentOrientation/visibility/status/sourceRefs/…) plus per-record 'supersedes'/'contradicts' (Law 3: change is lineage, passed through to the spine's existing supersession machinery — content-hash identity converges on a byte-identical resubmission, outcome 'converged'). Any OTHER registered vocab routes through the generic lane — records use '{kind: <ClassName>, ...predicate fields, localId|clientRef}' (the existing generic-ingest shape); supersedes/contradicts have no machinery there and are REJECTED loudly (a materialize class's only reappearance is a plain resubmission of the same localId/clientRef — the 'Replace'-strategy upsert already performed by the existing subject-scoped reconcile). Law 1 (witnessed or explicitly commons): for a membrane-ed vocab, an observer-less write WITHOUT 'publish: true' is a loud rejection; with 'observer' (top-level, or per-record 'observerAgentId') and no 'publish', the write lands in the writer's OWN membrane; 'publish: true' forces the shared commons (the given observer, if any, is not used for placement — flagged in 'warnings', never silent). A non-membrane vocab has no observer concept — 'publish'/'observer' are accepted as a no-op, flagged in 'warnings'. Law 5: 'dry_run' runs the SAME structural/SHACL validation preview a real apply would (nothing written) and reports the predicted per-record outcome + any violations. Batches are single-vocab (structural) and ALL-OR-HALT: any SHACL/apply failure marks EVERY record 'halted' and carries the shared 'violations' — never a partial write. Returns {graphId, vocab, dryRun, ok, results:[{subject, outcome:'applied'|'converged'|'halted', flags?}], journalRef?, warnings, violations?}.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graph_id",
+          "vocab",
+          "records"
+        ],
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "vocab": {
+            "type": "string",
+            "description": "The vocab name (e.g. 'sophia-memory-core', 'emporium-bookmark'). ONE vocab per call — a per-record 'vocab' key is rejected."
+          },
+          "records": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object"
+            },
+            "description": "Memory lane (vocab='sophia-memory-core'): the remember/remember_batch camelCase record shape, plus optional 'supersedes'/'contradicts' (a subject IRI) and 'observerAgentId' (or bare 'observer'). Generic lane (any other vocab): {kind: <ClassName>, ...predicate fields, localId|clientRef}. NEVER include 'subject' (Law 2) or 'vocab' (Law 3 — batches are single-vocab) on any record — both are a loud, whole-batch rejection."
+          },
+          "dry_run": {
+            "type": "boolean",
+            "description": "Default false. true = the SAME structural/SHACL validation preview a real apply would run — NOTHING is written; the response's per-record outcome and 'violations' are the predicted verdict."
+          },
+          "dryRun": {
+            "type": "boolean"
+          },
+          "publish": {
+            "type": "boolean",
+            "description": "Default false. For a membrane-ed vocab (Law 1): true forces the shared commons (an explicit publication act); false (the default) requires an 'observer' — an observer-less write without publish=true is a loud rejection. No-op (flagged in 'warnings') for a non-membrane vocab."
+          },
+          "observer": {
+            "type": "string",
+            "description": "The writer's own membrane (a per-agent witness id). Default for every record that omits its own 'observerAgentId'. No-op (flagged in 'warnings') for a non-membrane vocab."
+          },
+          "operationId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9._:-]+$",
+            "description": "Stable source invocation identity. Batched records derive stable child identities from it."
+          },
+          "operation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "atMs": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "at_ms": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "emporium_retract",
+      "description": "T-W item 2, Law 4 (retraction is an event, not an erasure) — mints a retraction EVENT on 'subject' (who/when/rationale) direct-on-store, in whichever named graph the subject already lives in (located by a store-wide scan; this tool takes no vocab/class). Heads exclude it: `sweep::current_heads_by_lineage`/`heads_as_of` — and therefore `sparql_query_named`'s 'currentHeads' — never return a retracted subject as a current (or, for 'as_of', historical) head again. `emporium_read` hides it too. The log keeps it: NO triple is removed — hard-delete stays a SEPARATE, deferred admin-tier act. Re-retracting an already-retracted subject records an ADDITIONAL event (flagged in 'warnings'), never an error. Returns {graphId, subject, graph, kind, rationale, retractedAt, retractionRef, alreadyRetracted, warnings}.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graph_id",
+          "subject",
+          "rationale"
+        ],
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string",
+            "description": "A full subject IRI — an existing minted subject the caller read back from a prior write/query (referencing an existing identity is not minting a new one)."
+          },
+          "rationale": {
+            "type": "string",
+            "description": "Why this subject is being retracted (Law 4: who/when/rationale) — required, non-empty."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "retract",
+              "archive"
+            ],
+            "description": "Default 'retract'."
+          },
+          "observer": {
+            "type": "string",
+            "description": "The witness recording this retraction (attributed via 'retractedBy') — NOT used to locate the subject."
+          },
+          "operationId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9._:-]+$",
+            "description": "Stable source operation identity. Reuse the same value for an at-least-once retry."
+          },
+          "operation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "retractionEventId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "retraction_event_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "atMs": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "at_ms": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "sparql_update",
+      "description": "Run a SPARQL UPDATE against a local graph.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graphId",
+          "update"
+        ],
+        "properties": {
+          "graphId": {
+            "type": "string"
+          },
+          "update": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "rdf_load",
+      "description": "Load RDF data into a local graph.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graphId",
+          "data",
+          "format"
+        ],
+        "properties": {
+          "graphId": {
+            "type": "string"
+          },
+          "data": {
+            "type": "string"
+          },
+          "format": {
+            "type": "string"
+          },
+          "baseIri": {
+            "type": "string"
+          },
+          "targetGraphIri": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "rdf_dump",
+      "description": "Dump RDF data from a local graph.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graphId",
+          "format"
+        ],
+        "properties": {
+          "graphId": {
+            "type": "string"
+          },
+          "format": {
+            "type": "string"
+          },
+          "sourceGraphIri": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "list_restore_points",
+      "description": "List local time-travel restore points for a graph, newest first, with cursor pagination.",
+      "inputSchema": {
+        "type": "object",
+        "required": [],
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "get_restore_point",
+      "description": "Read the manifest of a single local restore point, including referenced per-document snapshot ids.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "restorePointId"
+        ],
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "restore_point_id": {
+            "type": "string"
+          },
+          "restorePointId": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "create_restore_point",
+      "description": "Capture a new local restore point bundling the graph's folders and wires with a fresh snapshot of every document. Optional label is shown in listings.",
+      "inputSchema": {
+        "type": "object",
+        "required": [],
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "trigger": {
+            "type": "string",
+            "enum": [
+              "manual",
+              "interval",
+              "checkpoint"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "diff_restore_points",
+      "description": "Compute aggregate document and char-level deltas between a restore point and another (or the live graph).",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "restorePointId"
+        ],
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "restore_point_id": {
+            "type": "string"
+          },
+          "restorePointId": {
+            "type": "string"
+          },
+          "against": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "delete_restore_point",
+      "description": "Delete a local restore point and its bundled graph snapshot. Per-document snapshots referenced by other restore points remain.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "restorePointId"
+        ],
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "restore_point_id": {
+            "type": "string"
+          },
+          "restorePointId": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "restore_to_restore_point",
+      "description": "Apply a local restore point: captures an auto-backup, atomically swaps Y.Doc state, rematerializes RDF, verifies, and on any failure rolls back from the auto-backup. Blocks all CRDT writes for the duration. Returns an operationId for status polling. Pass dryRun=true to validate without applying.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "restorePointId"
+        ],
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "restore_point_id": {
+            "type": "string"
+          },
+          "restorePointId": {
+            "type": "string"
+          },
+          "dry_run": {
+            "type": "boolean"
+          },
+          "dryRun": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "get_restore_operation",
+      "description": "Read the current state of a restore operation: phase, progress, backup pointer, error if any.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "operationId"
+        ],
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "operation_id": {
+            "type": "string"
+          },
+          "operationId": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "cancel_restore_operation",
+      "description": "Request cancellation of an in-flight restore. Cooperatively checked between phases; if cancelled mid-restore, the auto-backup is rolled back so the graph returns to its pre-restore state.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "operationId"
+        ],
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "operation_id": {
+            "type": "string"
+          },
+          "operationId": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "read_artifact",
+      "description": "Perceive a stored artifact and its record (mode, sha256, light index): image kinds return base64 bytes (the agent's vision model can then see it); text returns one page of decoded text (offset and max_chars, default 65536, with nextOffset and totalChars); others return metadata. With wire_id: read the region that wire names on its artifact, now, beside what was stored when it was wired: stale { file, region } with both hashes, regionText (paged), and when the lines moved a re-anchor by the stored text (reanchored { start, end }, or ambiguous with candidates, or anchorLost). With region (short form or object) and artifact_id: read that region now, nothing stored. Every answer carries localPath, where the bytes are on this computer (a reference's own file, or the original under the graph's store), so an agent whose harness can read files may open it directly.",
+      "inputSchema": {
+        "type": "object",
+        "required": [],
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "artifact_id": {
+            "type": "string"
+          },
+          "artifactId": {
+            "type": "string"
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "max_chars": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "maxChars": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "wire_id": {
+            "type": "string",
+            "description": "A wire to an artifact; its region is read and judged against the side store."
+          },
+          "wireId": {
+            "type": "string",
+            "description": "Compatibility spelling of wire_id."
+          },
+          "region": {
+            "type": [
+              "string",
+              "object"
+            ],
+            "description": "Region of the target artifact: short form (L10-L20, p12, b100-200, m:path, j:/pointer) or { kind, ... }."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "list_artifact_kinds",
+      "description": "List artifact kinds and their capabilities (perceive/render/derive) from the graph-native kind ontology.",
+      "inputSchema": {
+        "type": "object",
+        "required": [],
+        "properties": {},
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "list_artifact_revisions",
+      "description": "List the version history (revisions) of an artifact, newest first.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "artifact_id"
+        ],
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "artifact_id": {
+            "type": "string"
+          },
+          "artifactId": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "restore_artifact_revision",
+      "description": "Restore an artifact to a prior revision (checkpoints the current state first, so it is reversible).",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "artifact_id",
+          "revision_id"
+        ],
+        "properties": {
+          "graph_id": {
+            "type": "string"
+          },
+          "graphId": {
+            "type": "string"
+          },
+          "artifact_id": {
+            "type": "string"
+          },
+          "artifactId": {
+            "type": "string"
+          },
+          "revision_id": {
+            "type": "string"
+          },
+          "revisionId": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "source_pull",
+      "description": "Pull one identity-fenced, complete source bundle for a graph. The bundle includes the graph's and its documents' Y.Docs, Meaningful Object current-state and event sources, memory, valuations, retractions, conflicts, receipts, and the source contract registry. Persist the whole bundle and its complete manifest atomically before claiming offline completeness.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graphId"
+        ],
+        "properties": {
+          "graphId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "graph_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "graphIncarnation": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Optional on first pull; required on subsequent pulls to reject a replacement graph."
+          },
+          "graph_incarnation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expectedRevision": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "description": "Staleness guard (chronicle): the document revision you last read. The write is refused with a revision conflict if the document has changed since; re-read, or pass force=true."
+          },
+          "expected_revision": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "force": {
+            "type": "boolean",
+            "description": "Bypass the expectedRevision staleness guard explicitly. The override is recorded on the document's chronicle (lastForcedAt / lastForcedBy) — possible, never silent."
+          },
+          "agent": {
+            "type": "string",
+            "description": "Name of the agent making this write (e.g. beta). Recorded as the document's updatedBy / createdBy in the chronicle; the credential it rides on is kept as provenance. Omit for a human owner write."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "source_push",
+      "description": "Atomically accept a batch of stable, identity-fenced offline source intents, return durable idempotency receipts, and materialize their effects. Current-state Meaningful Objects use causal base versions and explicit conflicts; event sources use stable event identity; Y.Doc updates merge; lifecycle effects are resumable.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graphId",
+          "graphIncarnation",
+          "operations"
+        ],
+        "properties": {
+          "graphId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "graph_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "graphIncarnation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "graph_incarnation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "operations": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 1000,
+            "items": {
+              "type": "object",
+              "required": [
+                "kind",
+                "operationId"
+              ],
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "currentState",
+                    "resolveCurrent",
+                    "eventLog",
+                    "memory",
+                    "valuation",
+                    "retraction",
+                    "documentLifecycle",
+                    "workspaceUpdate",
+                    "documentUpdate",
+                    "crdtCommand",
+                    "graphMetadata"
+                  ]
+                },
+                "operationId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160,
+                  "pattern": "^[A-Za-z0-9._:-]+$"
+                },
+                "vocab": {
+                  "type": "string"
+                },
+                "class": {
+                  "type": "string"
+                },
+                "objectId": {
+                  "type": "string"
+                },
+                "baseVersion": {
+                  "type": "string"
+                },
+                "record": {
+                  "type": "object"
+                },
+                "causalOrder": {
+                  "type": "integer"
+                },
+                "clientId": {
+                  "type": "string"
+                },
+                "evidenceWeight": {
+                  "type": "number"
+                },
+                "objectKey": {
+                  "type": "string"
+                },
+                "conflictId": {
+                  "type": "string"
+                },
+                "chosenOperationId": {
+                  "type": "string"
+                },
+                "eventId": {
+                  "type": "string"
+                },
+                "observer": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "publish": {
+                  "type": "boolean"
+                },
+                "atMs": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "records": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "object"
+                  }
+                },
+                "valuationEventId": {
+                  "type": "string"
+                },
+                "documentId": {
+                  "type": "string"
+                },
+                "blockId": {
+                  "type": "string"
+                },
+                "importance": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 5
+                },
+                "valence": {
+                  "type": "integer",
+                  "minimum": -5,
+                  "maximum": 5
+                },
+                "tags": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "retractionEventId": {
+                  "type": "string"
+                },
+                "subject": {
+                  "type": "string"
+                },
+                "rationale": {
+                  "type": "string"
+                },
+                "retractionKind": {
+                  "type": "string",
+                  "enum": [
+                    "retract",
+                    "archive"
+                  ]
+                },
+                "action": {
+                  "type": "string",
+                  "enum": [
+                    "create",
+                    "delete",
+                    "recreate"
+                  ]
+                },
+                "title": {
+                  "type": "string"
+                },
+                "newDocumentIncarnation": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "expectedDocumentIncarnation": {
+                  "type": "string"
+                },
+                "initialUpdateBase64": {
+                  "type": "string",
+                  "contentEncoding": "base64"
+                },
+                "documentIncarnation": {
+                  "type": "string"
+                },
+                "updateBase64": {
+                  "type": "string",
+                  "contentEncoding": "base64"
+                },
+                "commandKind": {
+                  "type": "string"
+                },
+                "payload": {
+                  "type": "object"
+                },
+                "description": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "source_rebuild",
+      "description": "Recompute disposable Meaningful Object, memory, valuation, retraction, conflict, and workflow projections from the identity-fenced durable source ledger, reporting source and projection set hashes for rebuild verification.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "graphId",
+          "graphIncarnation"
+        ],
+        "properties": {
+          "graphId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "graph_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "graphIncarnation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "graph_incarnation": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  ]
+}

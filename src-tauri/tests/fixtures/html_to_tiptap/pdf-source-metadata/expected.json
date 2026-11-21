@@ -1,0 +1,32 @@
+{
+  "tiptapJson": {
+    "type": "doc",
+    "content": [
+      {
+        "type": "paragraph",
+        "attrs": {
+          "data-source-format": "pdf",
+          "data-source-approach": "pdf.fast-text",
+          "data-source-page": null,
+          "data-source-role": null,
+          "data-source-id": null,
+          "data-pdf-page": "2",
+          "data-pdf-role": "body",
+          "data-pdf-selector": "page=2&start=14&end=29",
+          "textAlign": null,
+          "indent": 0,
+          "collapsed": false
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Annotated passage."
+          }
+        ]
+      }
+    ]
+  },
+  "derivedTitle": null,
+  "sourceFormat": "html",
+  "warnings": []
+}

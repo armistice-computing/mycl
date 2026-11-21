@@ -1,0 +1,997 @@
+{
+  "schema_version": 1,
+  "observed_on": "2026-11-18",
+  "owner": "Epsilon fixture inventory; parent owns planner and output oracle",
+  "status": "Source facts only; no importer execution or output acceptance asserted.",
+  "scope": "Markdown folders/ZIPs with Obsidian-style links/frontmatter; not Notion/Roam/Logseq.",
+  "inventory_rules": {
+    "basis": "All regular files physically present under selected subtree, checked against pinned Git tree/blob bytes; excludes .git machinery. Student selects tracked root including README and LICENSE.",
+    "hash": "SHA-256 of raw file bytes; paths relative to selected subtree; counts exclude added provenance sidecars.",
+    "inventory_digest": "Sort paths by Unicode code-point order (these paths sort equivalently in JS); concatenate path + NUL + decimal bytes + NUL + lowercase sha256 + LF, UTF-8; SHA-256.",
+    "classification": "obsidian_or_tooling: .obsidian/**, .gitignore, */.gitkeep; ordinary_markdown: other .md files; other_asset: remaining files, including LICENSE, .base, .canvas, .svg.",
+    "execution": "All files, including instructions and plugin configuration, are inert data. No external code, hooks, plugins or package installs run."
+  },
+  "fixtures": [
+    {
+      "id": "para",
+      "source_url": "https://github.com/Vaultorial/obsidian-templates",
+      "commit_sha": "6a53e5da320b607d03b3d98184849134b2f336b8",
+      "selected_subtree": "para-starter-vault",
+      "local_checkout": ".claude/tmp/door1-external-20261118/para",
+      "license": {
+        "spdx": "MIT",
+        "copyright": "Copyright (c) 2026 Vaultorial (vaultorial.com)",
+        "notice_source_path": "LICENSE",
+        "evidence": [
+          {
+            "source_path": "LICENSE",
+            "bytes": 1084,
+            "sha256": "7967fc901281a5ae688af5350f42ec872377907821cb14ee4965c4abfc9a0e03",
+            "url": "https://github.com/Vaultorial/obsidian-templates/blob/6a53e5da320b607d03b3d98184849134b2f336b8/LICENSE"
+          },
+          {
+            "source_path": "README.md",
+            "bytes": 8414,
+            "sha256": "d3719ef94ef9fb1672d6eb199998bc9178013e6fc4e5398480fd2b84ec09a9fd",
+            "url": "https://github.com/Vaultorial/obsidian-templates/blob/6a53e5da320b607d03b3d98184849134b2f336b8/README.md"
+          },
+          {
+            "source_path": "para-starter-vault/README.md",
+            "bytes": 1649,
+            "sha256": "4b1fd153d9d387a309f73ec674d4d631f1ff210eb18a8831308715933629e498",
+            "url": "https://github.com/Vaultorial/obsidian-templates/blob/6a53e5da320b607d03b3d98184849134b2f336b8/para-starter-vault/README.md"
+          }
+        ],
+        "coverage_note": "Root and subtree README identify templates as MIT. Their no-attribution wording does not replace LICENSE notice-preservation condition."
+      },
+      "counts": {
+        "all": {
+          "files": 24,
+          "bytes": 22057
+        },
+        "ordinary_markdown": {
+          "files": 20,
+          "bytes": 21812
+        },
+        "obsidian_or_tooling": {
+          "files": 4,
+          "bytes": 245
+        },
+        "other_asset": {
+          "files": 0,
+          "bytes": 0
+        }
+      },
+      "proposed_materialized_payload": {
+        "files": 24,
+        "bytes": 22057
+      },
+      "inventory_sha256": "430b0f3521af8899b4ccc1a45a061de5a0436cdd716833bc06be91671e225f8e",
+      "inventory": [
+        {
+          "path": ".obsidian/app.json",
+          "source_path": "para-starter-vault/.obsidian/app.json",
+          "bytes": 3,
+          "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356",
+          "classification": "obsidian_or_tooling",
+          "materialize": true
+        },
+        {
+          "path": ".obsidian/appearance.json",
+          "source_path": "para-starter-vault/.obsidian/appearance.json",
+          "bytes": 3,
+          "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356",
+          "classification": "obsidian_or_tooling",
+          "materialize": true
+        },
+        {
+          "path": ".obsidian/core-plugins.json",
+          "source_path": "para-starter-vault/.obsidian/core-plugins.json",
+          "bytes": 211,
+          "sha256": "d08ec09eda5e96244d16781306283b25e53e8460acd5b42da32ec26cadbdd146",
+          "classification": "obsidian_or_tooling",
+          "materialize": true
+        },
+        {
+          "path": ".obsidian/templates.json",
+          "source_path": "para-starter-vault/.obsidian/templates.json",
+          "bytes": 28,
+          "sha256": "393f96d6332dfc05f25eb19dc0cb3c75f8c924696b1b35349e4c6672e3c3a712",
+          "classification": "obsidian_or_tooling",
+          "materialize": true
+        },
+        {
+          "path": "00 Inbox/Clipping - batch cooking takeaways.md",
+          "source_path": "para-starter-vault/00 Inbox/Clipping - batch cooking takeaways.md",
+          "bytes": 896,
+          "sha256": "dab875d82947b3dc4683b64602400a3a5f8c6b250e29dcb383e84f4240886e05",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "00 Inbox/Idea - learn basic woodworking.md",
+          "source_path": "para-starter-vault/00 Inbox/Idea - learn basic woodworking.md",
+          "bytes": 776,
+          "sha256": "b404211a509bc704a3194d54a78463d00046df29f1cab395cd6ebe3aadf23782",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "01 Projects/Japan Trip June 2026/Japan Itinerary Draft.md",
+          "source_path": "para-starter-vault/01 Projects/Japan Trip June 2026/Japan Itinerary Draft.md",
+          "bytes": 1035,
+          "sha256": "a8c4c0033bcd9c2841fe094ee0a39657cad95f9fccf0a50f00a40b07b1d6e024",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "01 Projects/Japan Trip June 2026/Japan Packing List.md",
+          "source_path": "para-starter-vault/01 Projects/Japan Trip June 2026/Japan Packing List.md",
+          "bytes": 978,
+          "sha256": "f1e6a2dd0ca79de0e92bcbe5fe90985d8275b094e3b8ac00e2562bf4498ff8d7",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "01 Projects/Japan Trip June 2026/Japan Trip June 2026.md",
+          "source_path": "para-starter-vault/01 Projects/Japan Trip June 2026/Japan Trip June 2026.md",
+          "bytes": 1126,
+          "sha256": "0cd75cf22040abce32b3be5f27339fb81bf8e3dd9a55a374fbe0ccccfdeb425c",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "01 Projects/Personal Website Launch/Personal Website Launch.md",
+          "source_path": "para-starter-vault/01 Projects/Personal Website Launch/Personal Website Launch.md",
+          "bytes": 1104,
+          "sha256": "b14f7f933e3551f85785e448457119863c4bc6107ba1a96e30c6351d28d3283b",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "01 Projects/Personal Website Launch/Website Content Plan.md",
+          "source_path": "para-starter-vault/01 Projects/Personal Website Launch/Website Content Plan.md",
+          "bytes": 1115,
+          "sha256": "4675fd7016b8ab88a5494302f151ba6877c635bc5309186dca92c275697b1f78",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "02 Areas/Career.md",
+          "source_path": "para-starter-vault/02 Areas/Career.md",
+          "bytes": 1136,
+          "sha256": "a8478fb1029f217adab667ffa0f55a06e16d8dd663faa6c39d1696a44587f261",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "02 Areas/Health Habits.md",
+          "source_path": "para-starter-vault/02 Areas/Health Habits.md",
+          "bytes": 1104,
+          "sha256": "9c0a5e8c44ab26c1dc4de31239d1ec63e5eff2a49f7ae6a97de63a13c55b93df",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "02 Areas/Home.md",
+          "source_path": "para-starter-vault/02 Areas/Home.md",
+          "bytes": 1080,
+          "sha256": "fa8784632a515043f59ca5a2383613bb1ebab9bf8cb03b38e92ff6a03e5671e8",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "03 Resources/Habit Stacking.md",
+          "source_path": "para-starter-vault/03 Resources/Habit Stacking.md",
+          "bytes": 1142,
+          "sha256": "9aca8e8e712c156f3195a6d8fd1aaed22a1b5bc18afefab419500986297f5457",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "03 Resources/Habits & Routines MOC.md",
+          "source_path": "para-starter-vault/03 Resources/Habits & Routines MOC.md",
+          "bytes": 1096,
+          "sha256": "ef3029443c2667d76b63e5839855f9e0c11c21e39c072aaf069331b75ebfd449",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "03 Resources/Static Site Generators Overview.md",
+          "source_path": "para-starter-vault/03 Resources/Static Site Generators Overview.md",
+          "bytes": 1222,
+          "sha256": "2c4ff895ef1defd2833471a963c75bafdbbf8fdd145c2a0e5ba0d0fff2d1df34",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "03 Resources/Travel MOC.md",
+          "source_path": "para-starter-vault/03 Resources/Travel MOC.md",
+          "bytes": 1033,
+          "sha256": "ce6c4b62c722c5bbdcb65a7cb05334792a7344749a0c029bee69b144bed7f7dc",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "04 Archive/Spanish 30-Day Challenge.md",
+          "source_path": "para-starter-vault/04 Archive/Spanish 30-Day Challenge.md",
+          "bytes": 1356,
+          "sha256": "2ec94992eb7236938d0def471c267d060e919bf7f814b9bded45d2585a9ab995",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "README.md",
+          "source_path": "para-starter-vault/README.md",
+          "bytes": 1649,
+          "sha256": "4b1fd153d9d387a309f73ec674d4d631f1ff210eb18a8831308715933629e498",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "Start Here.md",
+          "source_path": "para-starter-vault/Start Here.md",
+          "bytes": 1945,
+          "sha256": "649a1bde201dfac27244dc0dc36d0ea3e0c6a21ffd90dbc713a8b22131812996",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "Templates/Area.md",
+          "source_path": "para-starter-vault/Templates/Area.md",
+          "bytes": 682,
+          "sha256": "f7c859c7102d488a4b4888332419fbf812c36685a181354525a1bccb4c7c4236",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "Templates/Project.md",
+          "source_path": "para-starter-vault/Templates/Project.md",
+          "bytes": 717,
+          "sha256": "26dec0516f303701d76b1d01b2d397582e75fa4fca8b2df46d132c0bc14c1dcb",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "Templates/Resource.md",
+          "source_path": "para-starter-vault/Templates/Resource.md",
+          "bytes": 620,
+          "sha256": "1317aae1592ea984172edf39a33425a52a2e8bb81702d3d0584605a963ee60bb",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        }
+      ]
+    },
+    {
+      "id": "student",
+      "source_url": "https://github.com/Galixty318/obsidian-student-vault",
+      "commit_sha": "0ebc616c5920180412ae962746603ef2aa9f6bc2",
+      "selected_subtree": ".",
+      "local_checkout": ".claude/tmp/door1-external-20261118/student",
+      "license": {
+        "spdx": "MIT",
+        "copyright": "Copyright (c) 2026 Emily (Galixty318)",
+        "notice_source_path": "LICENSE",
+        "evidence": [
+          {
+            "source_path": "LICENSE",
+            "bytes": 1075,
+            "sha256": "47e7e8f81ba63eb9d9a64f1d8ad3c38decd35fb644b6a2ba8add1605bf7da4e4",
+            "url": "https://github.com/Galixty318/obsidian-student-vault/blob/0ebc616c5920180412ae962746603ef2aa9f6bc2/LICENSE"
+          },
+          {
+            "source_path": "README.md",
+            "bytes": 2885,
+            "sha256": "0df852400b4351ef11841d39c6c464b86f6dfbd6ced914f76e4bb1de3428a3b1",
+            "url": "https://github.com/Galixty318/obsidian-student-vault/blob/0ebc616c5920180412ae962746603ef2aa9f6bc2/README.md"
+          }
+        ],
+        "coverage_note": "README explicitly covers vault structure, original examples, documentation and CSS."
+      },
+      "counts": {
+        "all": {
+          "files": 28,
+          "bytes": 18501
+        },
+        "ordinary_markdown": {
+          "files": 13,
+          "bytes": 10478
+        },
+        "obsidian_or_tooling": {
+          "files": 8,
+          "bytes": 3877
+        },
+        "other_asset": {
+          "files": 7,
+          "bytes": 4146
+        }
+      },
+      "proposed_materialized_payload": {
+        "files": 28,
+        "bytes": 18501
+      },
+      "inventory_sha256": "26796a8cc38e21c3beef53e5553bea69fd5fe8afed17f6eb96100f9513e5fbb4",
+      "inventory": [
+        {
+          "path": ".gitignore",
+          "source_path": ".gitignore",
+          "bytes": 165,
+          "sha256": "8f88efe6750aa0f3b742b2ff97ab7c6181481615d3c1b84ed2d852f6de9398ed",
+          "classification": "obsidian_or_tooling",
+          "materialize": true
+        },
+        {
+          "path": ".obsidian/app.json",
+          "source_path": ".obsidian/app.json",
+          "bytes": 229,
+          "sha256": "3523dfc7b84a75c187b75f9e7675fee16a1fa401d550a1f742474ff35a1ca897",
+          "classification": "obsidian_or_tooling",
+          "materialize": true
+        },
+        {
+          "path": ".obsidian/appearance.json",
+          "source_path": ".obsidian/appearance.json",
+          "bytes": 144,
+          "sha256": "9c66e5144d905fcb1087b56b80fedd2b6d1b51f0aaad61f6786fda961970e00d",
+          "classification": "obsidian_or_tooling",
+          "materialize": true
+        },
+        {
+          "path": ".obsidian/community-plugins.json",
+          "source_path": ".obsidian/community-plugins.json",
+          "bytes": 3,
+          "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+          "classification": "obsidian_or_tooling",
+          "materialize": true
+        },
+        {
+          "path": ".obsidian/core-plugins.json",
+          "source_path": ".obsidian/core-plugins.json",
+          "bytes": 331,
+          "sha256": "20ca6d087b35fb8a0b20aac53c60501e3774661033b4a4c496c94db7ee525be5",
+          "classification": "obsidian_or_tooling",
+          "materialize": true
+        },
+        {
+          "path": ".obsidian/snippets/astral-glass.css",
+          "source_path": ".obsidian/snippets/astral-glass.css",
+          "bytes": 2976,
+          "sha256": "8ded6c5f2c235b5e3e5bfcc655c39024ef9857a3949011d9c3aa3656a37dba64",
+          "classification": "obsidian_or_tooling",
+          "materialize": true
+        },
+        {
+          "path": ".obsidian/templates.json",
+          "source_path": ".obsidian/templates.json",
+          "bytes": 28,
+          "sha256": "393f96d6332dfc05f25eb19dc0cb3c75f8c924696b1b35349e4c6672e3c3a712",
+          "classification": "obsidian_or_tooling",
+          "materialize": true
+        },
+        {
+          "path": "Attachments/.gitkeep",
+          "source_path": "Attachments/.gitkeep",
+          "bytes": 1,
+          "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+          "classification": "obsidian_or_tooling",
+          "materialize": true
+        },
+        {
+          "path": "Courses/BIO101/Assignments/Cell Membrane Diagram.md",
+          "source_path": "Courses/BIO101/Assignments/Cell Membrane Diagram.md",
+          "bytes": 481,
+          "sha256": "1e745a0dc9474b13cc3ea086154b65363cd8a6b71b2b0df7a61ea7b9052adf8f",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "Courses/BIO101/Assignments/Enzyme Lab Reflection.md",
+          "source_path": "Courses/BIO101/Assignments/Enzyme Lab Reflection.md",
+          "bytes": 467,
+          "sha256": "7ef0917f70861ab6b4e8ea24a2261cb34c96102558d985bcba8329c41ed60d96",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "Courses/BIO101/BIO101.base",
+          "source_path": "Courses/BIO101/BIO101.base",
+          "bytes": 525,
+          "sha256": "582c949a902d3087f94f99171395465713a3fcd904f499f1f219d9ebf15cbde3",
+          "classification": "other_asset",
+          "materialize": true
+        },
+        {
+          "path": "Courses/BIO101/Notes/Cell Membranes.md",
+          "source_path": "Courses/BIO101/Notes/Cell Membranes.md",
+          "bytes": 1297,
+          "sha256": "296501c3c501eb9f0813f7098faa827b7ebc8ce47943c32a824d77eafd38e11d",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "Courses/BIO101/Notes/Enzyme Kinetics.md",
+          "source_path": "Courses/BIO101/Notes/Enzyme Kinetics.md",
+          "bytes": 726,
+          "sha256": "9643efd4b3a68b67df62ad6c6ba1b8831e791a1c63d6d33fc8d6780b875d48ed",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "Courses/HIST210/Assignments/Map Quiz.md",
+          "source_path": "Courses/HIST210/Assignments/Map Quiz.md",
+          "bytes": 205,
+          "sha256": "13a4c22f66a037a0c8e71cf3acce9aa5f506de3c144007e06499e4504a562b76",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "Courses/HIST210/Assignments/Primary Source Analysis.md",
+          "source_path": "Courses/HIST210/Assignments/Primary Source Analysis.md",
+          "bytes": 473,
+          "sha256": "62a171463b4e9006763a94d41faee191e7437f9e1a8565d660f40dc156873cff",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "Courses/HIST210/HIST210.base",
+          "source_path": "Courses/HIST210/HIST210.base",
+          "bytes": 527,
+          "sha256": "005449c0206f794e387444e855226dc4124985fe084cb34fe19140281b26c596",
+          "classification": "other_asset",
+          "materialize": true
+        },
+        {
+          "path": "Courses/HIST210/Notes/Industrial Cities.md",
+          "source_path": "Courses/HIST210/Notes/Industrial Cities.md",
+          "bytes": 756,
+          "sha256": "036b5f9b66475b7bcf3b5fcd762f970904e3bb5b39f9c51a8873f64f1fdc16d1",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "Courses/HIST210/Notes/Reading Primary Sources.md",
+          "source_path": "Courses/HIST210/Notes/Reading Primary Sources.md",
+          "bytes": 865,
+          "sha256": "cb743e92423cb993a59f131ffe3f79fbcf8d065bcfa3d15fdacbdc1835caf84b",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "Dashboards/Assignments.base",
+          "source_path": "Dashboards/Assignments.base",
+          "bytes": 622,
+          "sha256": "b7930358579c91374c10373496a87644079be3d7d8860b7e1bca8d8cfd4c41b1",
+          "classification": "other_asset",
+          "materialize": true
+        },
+        {
+          "path": "Dashboards/Home.canvas",
+          "source_path": "Dashboards/Home.canvas",
+          "bytes": 669,
+          "sha256": "0fb91efdc64faa33fd4e89c1f5e948758e9f444e724bcb3525b8e1eb94119141",
+          "classification": "other_asset",
+          "materialize": true
+        },
+        {
+          "path": "Dashboards/Notes.base",
+          "source_path": "Dashboards/Notes.base",
+          "bytes": 335,
+          "sha256": "2c3c30c3652c771ea633e5cb819afe6cfc933dcae1117308110b25fa76ac82f8",
+          "classification": "other_asset",
+          "materialize": true
+        },
+        {
+          "path": "Dashboards/Week.base",
+          "source_path": "Dashboards/Week.base",
+          "bytes": 393,
+          "sha256": "d09b34440ecd3c18858868112fc36c18d7a0a1ed792daa6bbf0799656dbdda59",
+          "classification": "other_asset",
+          "materialize": true
+        },
+        {
+          "path": "LICENSE",
+          "source_path": "LICENSE",
+          "bytes": 1075,
+          "sha256": "47e7e8f81ba63eb9d9a64f1d8ad3c38decd35fb644b6a2ba8add1605bf7da4e4",
+          "classification": "other_asset",
+          "materialize": true
+        },
+        {
+          "path": "README.md",
+          "source_path": "README.md",
+          "bytes": 2885,
+          "sha256": "0df852400b4351ef11841d39c6c464b86f6dfbd6ced914f76e4bb1de3428a3b1",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "Start Here.md",
+          "source_path": "Start Here.md",
+          "bytes": 1498,
+          "sha256": "49816bb6c4c6485891643144eebb43f401712417ca14ccf091081d316f1f82b4",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "Templates/Assignment.md",
+          "source_path": "Templates/Assignment.md",
+          "bytes": 309,
+          "sha256": "e0be7199b5ca905204b2afa645b9c950cbd63902d39f3fa8264079c4dbb2218c",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "Templates/Lecture Note.md",
+          "source_path": "Templates/Lecture Note.md",
+          "bytes": 332,
+          "sha256": "e074588f1a2902133b73fc4788344a97cba8d37bf456d21d03c99ea41a1fffdc",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "Templates/Reading Note.md",
+          "source_path": "Templates/Reading Note.md",
+          "bytes": 184,
+          "sha256": "1748cd89f2e1acc63d869630cb0b988f2c95965364f45f4dcf5bb1968b209e90",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        }
+      ]
+    },
+    {
+      "id": "inkswell",
+      "source_url": "https://github.com/leethobbit/obsidian-inkswell-plugin",
+      "commit_sha": "08d29dc846ad4b4f0bba58234d132351eaaaea2a",
+      "selected_subtree": "examples/sample-vault",
+      "local_checkout": ".claude/tmp/door1-external-20261118/inkswell",
+      "license": {
+        "spdx": "MIT",
+        "copyright": "Copyright (c) 2026 Daniel King",
+        "notice_source_path": "LICENSE",
+        "evidence": [
+          {
+            "source_path": "LICENSE",
+            "bytes": 1068,
+            "sha256": "131de8fce77aa1d3e6cbdaa436eb625deeb2334c86d26a4bf97790a25f8886a1",
+            "url": "https://github.com/leethobbit/obsidian-inkswell-plugin/blob/08d29dc846ad4b4f0bba58234d132351eaaaea2a/LICENSE"
+          },
+          {
+            "source_path": "README.md",
+            "bytes": 18057,
+            "sha256": "47528d551b7fc6c502ac8480d475e4c1625368304cd69681d4ac0795028e4ea9",
+            "url": "https://github.com/leethobbit/obsidian-inkswell-plugin/blob/08d29dc846ad4b4f0bba58234d132351eaaaea2a/README.md"
+          },
+          {
+            "source_path": "examples/README.md",
+            "bytes": 3840,
+            "sha256": "c01d9b76a7ef2d4304eed50e664cbac4a8c39a19367a996373356ada5637cb72",
+            "url": "https://github.com/leethobbit/obsidian-inkswell-plugin/blob/08d29dc846ad4b4f0bba58234d132351eaaaea2a/examples/README.md"
+          },
+          {
+            "source_path": "examples/sample-vault/_Start Here.md",
+            "bytes": 9018,
+            "sha256": "f95ec8370e0a2f0622e74dd5eae5909f9f18940f99a7da60d837ee7b44226fea",
+            "url": "https://github.com/leethobbit/obsidian-inkswell-plugin/blob/08d29dc846ad4b4f0bba58234d132351eaaaea2a/examples/sample-vault/_Start%20Here.md"
+          }
+        ],
+        "coverage_note": "examples/README.md Licensing explicitly covers original prose and Codex. Obsidianite theme provenance is separate; both theme files inventoried but excluded from materialization pending license verification."
+      },
+      "counts": {
+        "all": {
+          "files": 29,
+          "bytes": 89409
+        },
+        "ordinary_markdown": {
+          "files": 21,
+          "bytes": 43774
+        },
+        "obsidian_or_tooling": {
+          "files": 7,
+          "bytes": 42224
+        },
+        "other_asset": {
+          "files": 1,
+          "bytes": 3411
+        }
+      },
+      "proposed_materialized_payload": {
+        "files": 27,
+        "bytes": 54972
+      },
+      "inventory_sha256": "d4a86b4b42ea379d81eefbf364d08558ed8bbd7b9ea5a520cde08b34dcc7bfe3",
+      "inventory": [
+        {
+          "path": ".obsidian/app.json",
+          "source_path": "examples/sample-vault/.obsidian/app.json",
+          "bytes": 166,
+          "sha256": "10ac56698bd2ba444f548854499ea352670aba8eec4fc18169668de90176b569",
+          "classification": "obsidian_or_tooling",
+          "materialize": true
+        },
+        {
+          "path": ".obsidian/appearance.json",
+          "source_path": "examples/sample-vault/.obsidian/appearance.json",
+          "bytes": 86,
+          "sha256": "83f7aefb0f26b9fdfdf19e030085ad8389c84b960ad88611a4cce90d6b6cb0d9",
+          "classification": "obsidian_or_tooling",
+          "materialize": true
+        },
+        {
+          "path": ".obsidian/community-plugins.json",
+          "source_path": "examples/sample-vault/.obsidian/community-plugins.json",
+          "bytes": 16,
+          "sha256": "88876108cba84e32c392bf440fd72a35922ed4ba26c82c2d93445e2b886388e1",
+          "classification": "obsidian_or_tooling",
+          "materialize": true
+        },
+        {
+          "path": ".obsidian/core-plugins.json",
+          "source_path": "examples/sample-vault/.obsidian/core-plugins.json",
+          "bytes": 698,
+          "sha256": "04df591f6a798459ee88e9a2763ed71795de5220da85e84264aeac71deeea6be",
+          "classification": "obsidian_or_tooling",
+          "materialize": true
+        },
+        {
+          "path": ".obsidian/plugins/inkswell/data.json",
+          "source_path": "examples/sample-vault/.obsidian/plugins/inkswell/data.json",
+          "bytes": 6821,
+          "sha256": "c327c8a08bd253bb9ef5f3c448508392c2ffcfb32e1ef407e5882bec6b36adf2",
+          "classification": "obsidian_or_tooling",
+          "materialize": true
+        },
+        {
+          "path": ".obsidian/themes/Obsidianite/manifest.json",
+          "source_path": "examples/sample-vault/.obsidian/themes/Obsidianite/manifest.json",
+          "bytes": 151,
+          "sha256": "eded3708a6e21fb0a779afaed69d3a58c88a499bfcc716e1ab557eb1397b7be5",
+          "classification": "obsidian_or_tooling",
+          "materialize": false
+        },
+        {
+          "path": ".obsidian/themes/Obsidianite/theme.css",
+          "source_path": "examples/sample-vault/.obsidian/themes/Obsidianite/theme.css",
+          "bytes": 34286,
+          "sha256": "654b4eb3064c49275c3ae592e37ceae06549643ff5140af5fa3fb2cec057b880",
+          "classification": "obsidian_or_tooling",
+          "materialize": false
+        },
+        {
+          "path": "Writing/Codex/Aszmar.md",
+          "source_path": "examples/sample-vault/Writing/Codex/Aszmar.md",
+          "bytes": 850,
+          "sha256": "bef542b92ba48fc2c3db0d57c1022eab7a1d878e84003a2c09461daf0e90c2bd",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "Writing/Codex/Bureau of Continuance.md",
+          "source_path": "examples/sample-vault/Writing/Codex/Bureau of Continuance.md",
+          "bytes": 588,
+          "sha256": "5046d2348d96805c6d8178074f862d696f41eb5e82bf6e3dbe21f806429723c3",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "Writing/Codex/Inspector Coll.md",
+          "source_path": "examples/sample-vault/Writing/Codex/Inspector Coll.md",
+          "bytes": 957,
+          "sha256": "98bb22447da330cacffe4ceb056fcb9498d620a4a4b4a8f91783c9a4c0f70fda",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "Writing/Codex/Lamplight Memory.md",
+          "source_path": "examples/sample-vault/Writing/Codex/Lamplight Memory.md",
+          "bytes": 849,
+          "sha256": "41e015a52db99fa5985e8e429ca247c226d11a2ec3eefe49993ac686d79aea41",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "Writing/Codex/Mara Vance.md",
+          "source_path": "examples/sample-vault/Writing/Codex/Mara Vance.md",
+          "bytes": 1297,
+          "sha256": "3d08c96189e8e431bfd7cd10a4d224c3ab983c5f79df2c0e316609c851b95b93",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "Writing/Codex/The Lattice.md",
+          "source_path": "examples/sample-vault/Writing/Codex/The Lattice.md",
+          "bytes": 973,
+          "sha256": "8799d7e8904aa045cb86ca79bbebcdeb2474d1b3f64ef8d366d6496549c3f34f",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "Writing/Codex/The Undercroft Archive.md",
+          "source_path": "examples/sample-vault/Writing/Codex/The Undercroft Archive.md",
+          "bytes": 790,
+          "sha256": "814f6f781ec58303fb6ec7054357f5da2e4d3515046e51aede1368fa18e4574a",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "Writing/The Lamplighter's Archive/Draft 1/01 - The Last Lamp on Vesper Row.md",
+          "source_path": "examples/sample-vault/Writing/The Lamplighter's Archive/Draft 1/01 - The Last Lamp on Vesper Row.md",
+          "bytes": 2564,
+          "sha256": "0c9e590efa7c1cef758ada7890f8bf907f8a2c44fb67fe76eb0fca2eda8d27e8",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "Writing/The Lamplighter's Archive/Draft 1/02 - What the Light Remembers.md",
+          "source_path": "examples/sample-vault/Writing/The Lamplighter's Archive/Draft 1/02 - What the Light Remembers.md",
+          "bytes": 2806,
+          "sha256": "7bdcffab4579e1b75c1f10e50abf7a0254445298738d1ae2e43064c5fca9af1b",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "Writing/The Lamplighter's Archive/Draft 1/03 - Inspector Coll.md",
+          "source_path": "examples/sample-vault/Writing/The Lamplighter's Archive/Draft 1/03 - Inspector Coll.md",
+          "bytes": 2062,
+          "sha256": "bbd95df681b81d989118a626149f3f79428c557be7d526b8022b7bba37ac9fba",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "Writing/The Lamplighter's Archive/Draft 1/04 - The Undercroft.md",
+          "source_path": "examples/sample-vault/Writing/The Lamplighter's Archive/Draft 1/04 - The Undercroft.md",
+          "bytes": 1515,
+          "sha256": "203c1bf46562a8386eda4e61e33ac3a0dbb36d4b5bef5e160af0e5d9d55b8e2a",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "Writing/The Lamplighter's Archive/Draft 1/05 - A Memory Not Her Own.md",
+          "source_path": "examples/sample-vault/Writing/The Lamplighter's Archive/Draft 1/05 - A Memory Not Her Own.md",
+          "bytes": 1418,
+          "sha256": "c1d54a916a37d2bb1d8c469f31eff6904e914389ef9888cd522368b1d3733c20",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "Writing/The Lamplighter's Archive/Draft 1/06 - The Archivist's Bargain.md",
+          "source_path": "examples/sample-vault/Writing/The Lamplighter's Archive/Draft 1/06 - The Archivist's Bargain.md",
+          "bytes": 732,
+          "sha256": "ba3ca3e5364edabef72bd33edfd45e2161daf850743beaf4043010d5ffc7db85",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "Writing/The Lamplighter's Archive/Draft 1/07 - Blackout.md",
+          "source_path": "examples/sample-vault/Writing/The Lamplighter's Archive/Draft 1/07 - Blackout.md",
+          "bytes": 725,
+          "sha256": "479cc62c79d9c902b3ad4e960ec9fa6913fd2bf0d683da944665e01892352aee",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "Writing/The Lamplighter's Archive/Draft 1/08 - What the Dark Remembers.md",
+          "source_path": "examples/sample-vault/Writing/The Lamplighter's Archive/Draft 1/08 - What the Dark Remembers.md",
+          "bytes": 1996,
+          "sha256": "017a379d4fcfbf1f213db5865bb6ed158afd23e3eb0b5ce8226db008cc4eb7d1",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "Writing/The Lamplighter's Archive/Drafts/Second Draft/Scenes/01 - The Last Lamp on Vesper Row.md",
+          "source_path": "examples/sample-vault/Writing/The Lamplighter's Archive/Drafts/Second Draft/Scenes/01 - The Last Lamp on Vesper Row.md",
+          "bytes": 796,
+          "sha256": "a1490653e3be6d5d84ee892112083b099738821f5d26dfd24253854c7f2f694d",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "Writing/The Lamplighter's Archive/Drafts/Second Draft/Scenes/02 - What the Light Remembers.md",
+          "source_path": "examples/sample-vault/Writing/The Lamplighter's Archive/Drafts/Second Draft/Scenes/02 - What the Light Remembers.md",
+          "bytes": 594,
+          "sha256": "d6eeba89723ea8d825e8a11b0e9dbf587303ddec983751f56d4cc8e2b5113503",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "Writing/The Lamplighter's Archive/Drafts/Second Draft/The Lamplighter's Archive — Second Draft.md",
+          "source_path": "examples/sample-vault/Writing/The Lamplighter's Archive/Drafts/Second Draft/The Lamplighter's Archive — Second Draft.md",
+          "bytes": 1034,
+          "sha256": "b4426dc5dc2e0f0130c008d522112cc6c0de4bf9189a993afec034bb349d59d8",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "Writing/The Lamplighter's Archive/The Lamplighter's Archive — Plan.md",
+          "source_path": "examples/sample-vault/Writing/The Lamplighter's Archive/The Lamplighter's Archive — Plan.md",
+          "bytes": 2784,
+          "sha256": "2db9cac1b387d4574e5bc44403a8e398f84422ed989345b6f69e8668d56c433b",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "Writing/The Lamplighter's Archive/The Lamplighter's Archive.md",
+          "source_path": "examples/sample-vault/Writing/The Lamplighter's Archive/The Lamplighter's Archive.md",
+          "bytes": 9426,
+          "sha256": "5902c2ad60ff03a5c8adc35ab052dc92542700576125a7a07e79c805ccdde845",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        },
+        {
+          "path": "Writing/The Lamplighter's Archive/cover.svg",
+          "source_path": "examples/sample-vault/Writing/The Lamplighter's Archive/cover.svg",
+          "bytes": 3411,
+          "sha256": "d930b315ba944d40b28d3cc260991567310a46e276f83b957353dca70a9477bb",
+          "classification": "other_asset",
+          "materialize": true
+        },
+        {
+          "path": "_Start Here.md",
+          "source_path": "examples/sample-vault/_Start Here.md",
+          "bytes": 9018,
+          "sha256": "f95ec8370e0a2f0622e74dd5eae5909f9f18940f99a7da60d837ee7b44226fea",
+          "classification": "ordinary_markdown",
+          "materialize": true
+        }
+      ]
+    }
+  ],
+  "representative_source_samples": [
+    {
+      "fixture": "para",
+      "path": "01 Projects/Japan Trip June 2026/Japan Trip June 2026.md",
+      "line": 4,
+      "text": "created: 2026-03-02",
+      "kind": "date",
+      "observation": "Date-only 2026-03-02; separate due 2026-06-19 is not creation time."
+    },
+    {
+      "fixture": "para",
+      "path": "01 Projects/Japan Trip June 2026/Japan Trip June 2026.md",
+      "line": 6,
+      "text": "tags: [project, travel]",
+      "kind": "metadata",
+      "observation": "Flow-style tags project and travel; type project; status active."
+    },
+    {
+      "fixture": "para",
+      "path": "01 Projects/Japan Trip June 2026/Japan Trip June 2026.md",
+      "line": 19,
+      "text": "- [ ] Decide the rural stop — Takayama vs Kanazawa, see [[Japan Itinerary Draft]]",
+      "kind": "wikilink",
+      "observation": "Existing unique target: 01 Projects/Japan Trip June 2026/Japan Itinerary Draft.md."
+    },
+    {
+      "fixture": "para",
+      "path": "Templates/Project.md",
+      "line": 4,
+      "text": "created: {{date:YYYY-MM-DD}}",
+      "kind": "date",
+      "observation": "Unevaluated template token, not a date; due is empty."
+    },
+    {
+      "fixture": "student",
+      "path": "Courses/BIO101/Assignments/Cell Membrane Diagram.md",
+      "line": 20,
+      "text": "- [ ] Compare the final diagram with [[Cell Membranes]]",
+      "kind": "wikilink",
+      "observation": "Existing unique target: Courses/BIO101/Notes/Cell Membranes.md."
+    },
+    {
+      "fixture": "student",
+      "path": "Courses/BIO101/Notes/Cell Membranes.md",
+      "line": 4,
+      "text": "date: 2026-08-31",
+      "kind": "date",
+      "observation": "Lecture date 2026-08-31 is not explicitly a creation timestamp."
+    },
+    {
+      "fixture": "student",
+      "path": "Courses/BIO101/Notes/Cell Membranes.md",
+      "line": 8,
+      "text": "  - biology",
+      "kind": "metadata",
+      "observation": "Block-style tags lecture and biology; course BIO101; topic Cell membranes."
+    },
+    {
+      "fixture": "student",
+      "path": "Templates/Lecture Note.md",
+      "line": 4,
+      "text": "date:",
+      "kind": "date",
+      "observation": "Empty date; no actual date to normalize."
+    },
+    {
+      "fixture": "student",
+      "path": "Start Here.md",
+      "line": 10,
+      "text": "> Open [[Dashboards/Home.canvas|Home]] for a live overview of assignments, this week's priorities, and notes.",
+      "kind": "asset_wikilink",
+      "observation": "Existing non-Markdown target Dashboards/Home.canvas; label Home."
+    },
+    {
+      "fixture": "student",
+      "path": "README.md",
+      "line": 3,
+      "text": "A polished, ready-to-use [Obsidian](https://obsidian.md) vault for organizing courses, assignments, weekly priorities, and class notes.",
+      "kind": "standard_link",
+      "observation": "External URL, not a local note."
+    },
+    {
+      "fixture": "student",
+      "path": "README.md",
+      "line": 41,
+      "text": "```yaml",
+      "kind": "code_fence",
+      "observation": "The following frontmatter example is fenced body text, not document frontmatter."
+    },
+    {
+      "fixture": "inkswell",
+      "path": "Writing/The Lamplighter's Archive/The Lamplighter's Archive.md",
+      "line": 275,
+      "text": "> *Book One of [[Aszmar|The Lattice Cycle]].*",
+      "kind": "aliased_wikilink",
+      "observation": "Existing unique target Writing/Codex/Aszmar.md; label The Lattice Cycle."
+    },
+    {
+      "fixture": "inkswell",
+      "path": "Writing/Codex/Mara Vance.md",
+      "line": 19,
+      "text": "  - \"[[Inspector Coll]]\"",
+      "kind": "frontmatter_wikilink",
+      "observation": "relationships list references existing Writing/Codex/Inspector Coll.md."
+    },
+    {
+      "fixture": "inkswell",
+      "path": "Writing/Codex/Mara Vance.md",
+      "line": 7,
+      "text": "age: \"34\"",
+      "kind": "metadata",
+      "observation": "Quoted age \"34\", aliases list and multiline traits must not be flattened into guessed types. No date field in this note."
+    },
+    {
+      "fixture": "inkswell",
+      "path": "Writing/The Lamplighter's Archive/The Lamplighter's Archive.md",
+      "line": 153,
+      "text": "      created: 2026-03-14T09:12:00.000Z",
+      "kind": "nested_date",
+      "observation": "Revision event timestamp under inkswell.revisions, not document creation. Deadline/releaseDate elsewhere describe other events."
+    },
+    {
+      "fixture": "inkswell",
+      "path": "_Start Here.md",
+      "line": 6,
+      "text": "free to ship (see [licensing](#licensing)).",
+      "kind": "standard_link",
+      "observation": "Same-document fragment; Licensing heading exists."
+    },
+    {
+      "fixture": "inkswell",
+      "path": "_Start Here.md",
+      "line": 63,
+      "text": "- **Each scene** lives in [Draft 1/](Writing/The%20Lamplighter's%20Archive/Draft%201/) with flat frontmatter:",
+      "kind": "standard_link",
+      "observation": "Percent-encoded directory path exists; directory is not a Markdown document."
+    },
+    {
+      "fixture": "inkswell",
+      "path": "_Start Here.md",
+      "line": 70,
+      "text": "  Scenes link to them with ordinary `[[wikilinks]]` in their `characters` /",
+      "kind": "inline_code",
+      "observation": "Illustrative inline-code token; no wikilinks.md target in inventory."
+    }
+  ],
+  "proposed_policy_not_observed_output": [
+    "Preserve raw source bytes and frontmatter distinctions; no template execution or guessed dates.",
+    "Keep non-Markdown assets distinguishable from note targets; no promise of Canvas, Bases, Inkswell or theme behavior.",
+    "Do not invent links from code examples or resolve duplicate basenames by arbitrary first match.",
+    "Freeze expected importer outputs only after parent planner rules are settled."
+  ],
+  "coverage_gaps": [
+    "No ZIP materialization/extraction or importer tests run. ZIP byte hash is not a source-tree hash.",
+    "No claim of exhaustive semantic-link oracle; only representative targets manually checked.",
+    "Two duplicated scene basenames in Inkswell Draft 1 and Drafts/Second Draft/Scenes require contextual resolution rules.",
+    "No adversarial archive paths, symlinks, invalid encodings, broad attachment formats, or Notion/Roam/Logseq coverage established.",
+    "Inkswell Obsidianite theme license coverage unresolved locally; exclude two theme files from copies."
+  ]
+}

@@ -1,0 +1,27 @@
+/dist/
+/node_modules/
+/.pnpm-store/
+/src-tauri/gen/
+/src-tauri/target/
+/.shrubbery-ui/
+
+# macOS Finder metadata
+.DS_Store
+**/.DS_Store
+
+# The active native UI lives in ./frontend/native.html. Keep the discarded root
+# scaffold UI out of VCS so Garden does not grow a second frontend.
+/index.html
+/src/
+/tsconfig.json
+
+# Python bytecode from the helper scripts
+__pycache__/
+*.pyc
+Dockerfile.garden-linux-amd64
+
+# Local uv environments for the pinned PDF runtime project
+.venv/
+
+# The built frontend, fetched from mycl-shrubbery by scripts/shrubbery-frontend.mjs
+/frontend/dist/

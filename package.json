@@ -1,0 +1,27 @@
+{
+  "name": "garden",
+  "version": "0.1.0",
+  "description": "Mycl — local-first native knowledge-graph desktop",
+  "private": true,
+  "license": "SEE LICENSE IN LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/armistice-computing/mycl.git"
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm tauri dev",
+    "build": "pnpm tauri build",
+    "frontend:dev": "node scripts/shrubbery-frontend.mjs dev",
+    "frontend:build": "node scripts/shrubbery-frontend.mjs build",
+    "frontend:preview": "node scripts/shrubbery-frontend.mjs preview",
+    "test:mcp-stdio": "node --test scripts/__tests__/garden-mcp-stdio.test.mjs scripts/__tests__/garden-agent-credentials.test.mjs",
+    "parity:openapi": "node parity/generate-openapi.mjs",
+    "parity:openapi:check": "node parity/generate-openapi.mjs --check",
+    "parity:security": "node parity/check-tauri-security.mjs",
+    "parity:storage": "node parity/check-storage-discipline.mjs",
+    "parity:cell-boundary": "node parity/check-cell-graph-boundary.mjs",
+    "parity:inventory": "pnpm parity:openapi:check && node parity/check-surface-inventory.mjs && pnpm parity:cell-boundary && pnpm parity:security && pnpm parity:storage",
+    "tauri": "cargo tauri"
+  }
+}
