@@ -115,7 +115,18 @@ mod tests {
         let arguments = serde_json::json!({ "source_document_id": "a", "target_document_id": "b" });
         let wire = serde_json::json!({ "predicate": "draws on" });
         let error = wire_create_payload(&wire, &arguments, "graph-a").expect_err("refused");
-        assert!(error.contains("not a usable name"), "{error}");
+        assert!(error.contains("not one a wire can take") && error.contains("relatedTo"), "{error}");
+        for (given, stored) in [("Supports", "supports"), ("", "relatedTo"), ("annotates", "annotates")] {
+            let wire = serde_json::json!({ "predicate": given });
+            let (_, payload) = wire_create_payload(&wire, &arguments, "graph-a").expect("accepted");
+            assert_eq!(payload["predicate"], stored, "{given:?}");
+        }
+        let (_, payload) = wire_create_payload(&serde_json::json!({}), &arguments, "graph-a").expect("no predicate");
+        assert_eq!(payload["predicate"], "relatedTo");
+        for refused in ["partOf", "isWiredTo", "fooBarBaz", "http://example.test/vocab#supports", "dreamtOf"] {
+            let wire = serde_json::json!({ "predicate": refused });
+            assert!(wire_create_payload(&wire, &arguments, "graph-a").is_err(), "{refused}");
+        }
         let wire = serde_json::json!({ "predicate": " supports " });
         let (_, payload) = wire_create_payload(&wire, &arguments, "graph-a").expect("trimmed and kept");
         assert_eq!(payload["predicate"], "supports");
@@ -170,7 +181,7 @@ mod tests {
             "source_document_id": "source-top",
             "target_document_id": "target-top",
             "target_graph_id": "target-graph-top",
-            "predicate": "relatesTo",
+            "predicate": "relatedTo",
             "bidirectional": true,
         });
         let wire = serde_json::json!({
@@ -203,7 +214,7 @@ mod tests {
         );
         assert_eq!(
             payload.get("predicate"),
-            Some(&serde_json::json!("relatesTo"))
+            Some(&serde_json::json!("relatedTo"))
         );
         assert_eq!(payload.get("bidirectional"), Some(&serde_json::json!(true)));
     }

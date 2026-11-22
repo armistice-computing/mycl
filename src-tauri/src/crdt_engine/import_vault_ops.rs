@@ -1896,7 +1896,9 @@ pub(crate) fn build_vault_import_plan(
         let predicate = if wikilink.is_tag {
             "exemplifies"
         } else {
-            "isWiredTo"
+            // wire_predicates::DEFAULT_WIRE_PREDICATE; spelled out because an
+            // integration test includes this file on its own.
+            "relatedTo"
         };
         let wire_key =
             format!("{operation_id}:{source_document_id}:{target_document_id}:{predicate}");

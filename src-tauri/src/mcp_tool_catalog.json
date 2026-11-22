@@ -2046,7 +2046,7 @@
     },
     {
       "name": "list_wire_predicates",
-      "description": "List built-in local wire predicates plus custom predicates found in the graph's wire snapshots.",
+      "description": "List the predicates a new wire may take: fourteen, in four groups (Ground, Critique, Genesis, Structure) and the generic relatedTo, each with a one-line meaning. The list is the same in every graph. create_wires refuses any other name.",
       "inputSchema": {
         "type": "object",
         "required": [
@@ -2125,7 +2125,7 @@
     },
     {
       "name": "create_wires",
-      "description": "Create one or more local semantic wires in the graph, through its CRDT surface. A wire to an artifact may name a region of it: region as the short form L10-L20 (lines, 1-based inclusive), p12 (pdf page), b100-200 (bytes, end exclusive), m:path/in/zip (member) or j:/pointer (json), or targetRegion as an object; the server reads the region, hashes it and sets fileHash (a client value is ignored); an out-of-range or wrong-kind region refuses the wire. artifactPath (absolute, or relative to one of the graph's roots) in place of a target id finds the referenced record for that file or makes one. The region's text is read through read_artifact with the wire id, never through documents.read.",
+      "description": "Create one or more local semantic wires in the graph, through its CRDT surface. The predicate is one of: grounds, requires, enables, exemplifies, supports, contradicts, qualifies, flowsInto, produces, intensifiesWith, contains, precedes, consequenceOf, relatedTo (list_wire_predicates gives their meanings); any other name refuses the whole call, and a wire with no predicate is relatedTo. Choose the most specific one that fits. A wire to an artifact may name a region of it: region as the short form L10-L20 (lines, 1-based inclusive), p12 (pdf page), b100-200 (bytes, end exclusive), m:path/in/zip (member) or j:/pointer (json), or targetRegion as an object; the server reads the region, hashes it and sets fileHash (a client value is ignored); an out-of-range or wrong-kind region refuses the wire. artifactPath (absolute, or relative to one of the graph's roots) in place of a target id finds the referenced record for that file or makes one. The region's text is read through read_artifact with the wire id, never through documents.read.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -2212,7 +2212,8 @@
             ]
           },
           "predicate": {
-            "type": "string"
+            "type": "string",
+            "description": "One of: grounds, requires, enables, exemplifies, supports, contradicts, qualifies, flowsInto, produces, intensifiesWith, contains, precedes, consequenceOf, relatedTo. Absent means relatedTo."
           },
           "bidirectional": {
             "type": "boolean"

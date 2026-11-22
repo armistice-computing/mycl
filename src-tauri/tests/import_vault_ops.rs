@@ -465,7 +465,7 @@ fn obsidian_plan_details_are_deterministic_and_faithful() {
 
     // Wires: the wikilink wire plus two exemplifies tag wires.
     let predicates: Vec<&str> = plan.wires.iter().map(|w| w.predicate).collect();
-    assert_eq!(predicates, vec!["isWiredTo", "exemplifies", "exemplifies"]);
+    assert_eq!(predicates, vec!["relatedTo", "exemplifies", "exemplifies"]);
     for wire in &plan.wires {
         assert!(wire.wire_id.starts_with("op-vault-fixture-w-"));
         assert_eq!(wire.source_document_id, expected_source_id);

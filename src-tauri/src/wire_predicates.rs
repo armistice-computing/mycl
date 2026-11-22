@@ -7,28 +7,88 @@ pub(crate) fn predicate_short_name(predicate: &str) -> String {
         .to_string()
 }
 
+/// One predicate a person or an agent may choose for a new wire.
+pub(crate) struct WirePredicate {
+    pub(crate) name: &'static str,
+    pub(crate) label: &'static str,
+    /// The group it sits in on the window's predicate wheel.
+    pub(crate) category: &'static str,
+    pub(crate) description: &'static str,
+}
+
+/// The question each group answers, as the window's wheel asks it.
+pub(crate) const WIRE_PREDICATE_GROUPS: [(&str, &str); 5] = [
+    ("Ground", "What makes B real or possible?"),
+    ("Critique", "What does A say about B?"),
+    ("Genesis", "How does A give rise to B?"),
+    ("Structure", "How are A and B ordered or arranged?"),
+    ("Generic", "A and B are associated, and no closer word fits."),
+];
+
+/// The fourteen judgment predicates: the whole set a new wire may take
+/// (Eschaton, 2026-11-21: the set stays small, a retired or unknown name is
+/// refused, and no tool makes a new predicate by using one). The names, groups
+/// and descriptions match the window's table (shrubbery,
+/// packages/nucleus/src/wire-predicates.ts); change both together.
+pub(crate) const WIRE_PREDICATES: [WirePredicate; 14] = [
+    WirePredicate { name: "grounds", label: "grounds", category: "Ground", description: "A provides the material or experiential foundation that keeps B from being empty abstraction" },
+    WirePredicate { name: "requires", label: "requires", category: "Ground", description: "B cannot exist or function without A" },
+    WirePredicate { name: "enables", label: "enables", category: "Ground", description: "A creates the conditions for B to be possible" },
+    WirePredicate { name: "exemplifies", label: "exemplifies", category: "Ground", description: "A is a concrete instance that makes B real" },
+    WirePredicate { name: "supports", label: "supports", category: "Critique", description: "A provides evidence or argument for B" },
+    WirePredicate { name: "contradicts", label: "contradicts", category: "Critique", description: "A opposes or undermines B" },
+    WirePredicate { name: "qualifies", label: "qualifies", category: "Critique", description: "A modifies, limits, or adds nuance to B" },
+    WirePredicate { name: "flowsInto", label: "flows into", category: "Genesis", description: "A continues into or transforms into B" },
+    WirePredicate { name: "produces", label: "produces", category: "Genesis", description: "A brought B into existence" },
+    WirePredicate { name: "intensifiesWith", label: "intensifies with", category: "Genesis", description: "A and B amplify each other through contact" },
+    WirePredicate { name: "contains", label: "contains", category: "Structure", description: "A spatially or structurally includes B" },
+    WirePredicate { name: "precedes", label: "precedes", category: "Structure", description: "A comes before B in time or sequence" },
+    WirePredicate { name: "consequenceOf", label: "consequence of", category: "Structure", description: "B is an effect or result of A" },
+    WirePredicate { name: "relatedTo", label: "is related to", category: "Generic", description: "General association" },
+];
+
+/// Predicates the app's own features write through the same path as
+/// everyone's wires, each with one fixed meaning: the record family (recalls,
+/// cites, authoredBy: provenance, see `WireFamily`), a PDF annotation to its
+/// file and page (annotates), and a quotation or a citation brought in from a
+/// reference library (quotesFrom, citesEvidence). A feature that needs a new
+/// one adds it here; nothing makes one by using it.
+pub(crate) const FEATURE_WIRE_PREDICATES: [&str; 6] =
+    ["recalls", "cites", "authoredBy", "annotates", "quotesFrom", "citesEvidence"];
+
+/// The predicate a new wire takes when none is named.
+pub(crate) const DEFAULT_WIRE_PREDICATE: &str = "relatedTo";
+
+/// The vocabulary the short names belong to.
+const VOCAB_NS: &str = "http://mnemosyne.ai/vocab#";
+
+/// The names of the fourteen, for a refusal to list.
+pub(crate) fn wire_predicate_names() -> String {
+    WIRE_PREDICATES.iter().map(|predicate| predicate.name).collect::<Vec<_>>().join(", ")
+}
+
+/// What a new wire stores for `raw`, or None when `raw` is not a predicate a
+/// new wire may take. A short name matches whatever its case and is stored in
+/// its one spelling ("Supports" is supports, never a second predicate). The
+/// vocabulary's own IRI for a name is kept as given. The feature predicates
+/// are exact, and they are not offered to anyone as a choice.
+pub(crate) fn writable_wire_predicate(raw: &str) -> Option<String> {
+    let short = raw.strip_prefix(VOCAB_NS);
+    let exact = short.unwrap_or(raw);
+    if WIRE_PREDICATES.iter().any(|predicate| predicate.name == exact) || FEATURE_WIRE_PREDICATES.contains(&exact) {
+        return Some(raw.to_string());
+    }
+    if short.is_some() {
+        return None;
+    }
+    WIRE_PREDICATES
+        .iter()
+        .find(|predicate| predicate.name.eq_ignore_ascii_case(raw))
+        .map(|predicate| predicate.name.to_string())
+}
+
 pub(crate) fn builtin_wire_predicates() -> Vec<(&'static str, &'static str, &'static str)> {
-    vec![
-        ("isWiredTo", "is wired to", ""),
-        ("partOf", "is part of", "Quantity"),
-        ("contains", "contains", "Quantity"),
-        ("exemplifies", "is an example of", "Quantity"),
-        ("supports", "supports", "Quality"),
-        ("contradicts", "contradicts", "Quality"),
-        ("qualifies", "qualifies", "Quality"),
-        ("causeOf", "causes", "Relation"),
-        ("consequenceOf", "is consequence of", "Relation"),
-        ("relatedTo", "is related to", "Relation"),
-        ("requires", "requires", "Modality"),
-        ("enables", "enables", "Modality"),
-        ("precedes", "precedes", "Modality"),
-        ("flowsInto", "flows into", "Synthesis"),
-        ("produces", "produces", "Synthesis"),
-        ("divergesFrom", "diverges from", "Synthesis"),
-        ("branchesTo", "branches to", "Synthesis"),
-        ("consumesWith", "consumes with", "Synthesis"),
-        ("intensifiesWith", "intensifies with", "Synthesis"),
-    ]
+    WIRE_PREDICATES.iter().map(|predicate| (predicate.name, predicate.label, predicate.category)).collect()
 }
 
 /// The predicate a dream cycle writes from its journal to what it dreamt of.
@@ -143,6 +203,42 @@ mod tests {
         assert_eq!(predicate_label("causeOf"), "causes");
         assert_eq!(predicate_label("synthesizes"), "synthesizes");
         assert_eq!(predicate_label("customRelation"), "customRelation");
+    }
+
+    #[test]
+    fn a_new_wire_takes_one_of_the_fourteen_in_its_one_spelling() {
+        assert_eq!(WIRE_PREDICATES.len(), 14);
+        for predicate in &WIRE_PREDICATES {
+            assert_eq!(writable_wire_predicate(predicate.name).as_deref(), Some(predicate.name));
+            let iri = format!("http://mnemosyne.ai/vocab#{}", predicate.name);
+            assert_eq!(writable_wire_predicate(&iri), Some(iri.clone()), "the vocabulary's IRI is kept as given");
+            assert!(WIRE_PREDICATE_GROUPS.iter().any(|(group, _)| *group == predicate.category), "{}", predicate.name);
+            assert!(!predicate.description.is_empty());
+        }
+        // Wrong case is the same predicate, never a second one.
+        assert_eq!(writable_wire_predicate("Supports").as_deref(), Some("supports"));
+        assert_eq!(writable_wire_predicate("FLOWSINTO").as_deref(), Some("flowsInto"));
+        // Retired, internal and invented names are not writable.
+        for name in ["isWiredTo", "partOf", "causeOf", "divergesFrom", "branchesTo", "consumesWith", "synthesizes", "fooBarBaz", ""] {
+            assert_eq!(writable_wire_predicate(name), None, "{name}");
+        }
+        // No other IRI is, and the vocabulary's IRI is exact.
+        assert_eq!(writable_wire_predicate("http://example.test/vocab#supports"), None);
+        assert_eq!(writable_wire_predicate("http://mnemosyne.ai/vocab#Supports"), None);
+        assert_eq!(writable_wire_predicate("http://mnemosyne.ai/vocab#partOf"), None);
+        // Feature predicates are exact and written by the app's own features.
+        for name in FEATURE_WIRE_PREDICATES {
+            assert_eq!(writable_wire_predicate(name).as_deref(), Some(name));
+        }
+        assert_eq!(
+            writable_wire_predicate("http://mnemosyne.ai/vocab#quotesFrom").as_deref(),
+            Some("http://mnemosyne.ai/vocab#quotesFrom")
+        );
+        assert_eq!(writable_wire_predicate("Cites"), None);
+        assert_eq!(writable_wire_predicate("dreamtOf"), None, "only the dream cycle writes it");
+        // Retired names still read with their labels on wires that have them.
+        assert_eq!(predicate_label("partOf"), "is part of");
+        assert_eq!(predicate_label("isWiredTo"), "is wired to");
     }
 
     #[test]

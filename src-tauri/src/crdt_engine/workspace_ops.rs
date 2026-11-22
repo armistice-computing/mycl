@@ -2166,35 +2166,48 @@ fn create_hosted_artifact_response(graph_id: &str, artifact_id: &str, data: &Val
 // Wires
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// The predicate a new wire will store, or why it can't be one. Validates
-/// exactly what is stored, the trimmed name (a stored " supports" would pass a
-/// trimmed check and then be left out of RDF); absent means `isWiredTo`. Also
-/// used by the MCP tool to check a whole batch before any wire is created.
-/// A predicate a tool, the interface or a sync may write: a usable name, and
-/// not one the server keeps to itself (dreamtOf).
+/// The predicate a new wire will store, or why it can't be one: one of the
+/// fourteen (wire_predicates.rs), in its one spelling. A tool, the interface
+/// and a sync all come through here; so does the MCP tool, to check a whole
+/// batch before any wire is created. An absent or empty predicate is
+/// relatedTo. A retired name (partOf, isWiredTo), an invented one and any
+/// other IRI are refused: no wire makes a new predicate by using one. The
+/// record predicates pass because the server's own features write them
+/// through this path; dreamtOf does not.
 pub(crate) fn validated_wire_predicate(raw: Option<String>) -> Result<String, String> {
-    let predicate = validated_wire_predicate_name(raw)?;
-    if crate::wire_predicates::WireFamily::of(&predicate).server_written() {
+    use crate::wire_predicates::{writable_wire_predicate, wire_predicate_names, WireFamily, DEFAULT_WIRE_PREDICATE};
+    let raw = raw.unwrap_or_default();
+    let named = raw.trim();
+    if named.is_empty() {
+        return Ok(DEFAULT_WIRE_PREDICATE.to_string());
+    }
+    if WireFamily::of(named).server_written() {
         return Err(format!(
-            "{predicate} wires are written only by the dream cycle; choose a judgment predicate \
-             (supports, contradicts, qualifies, flowsInto, relatedTo, …)"
+            "{named} wires are written only by the dream cycle; choose one of: {}",
+            wire_predicate_names()
         ));
     }
-    Ok(predicate)
+    writable_wire_predicate(named).ok_or_else(|| {
+        format!(
+            "predicate {raw:?} is not one a wire can take; choose one of: {}",
+            wire_predicate_names()
+        )
+    })
 }
 
+/// What the server's own paths store (the dream cycle's dreamtOf): any name
+/// that can be written to RDF. Nothing a client sends reaches this. A queued
+/// operation from an older build that names a retired predicate is refused
+/// like any other; the refusal ends that one operation and the queue goes on
+/// (it is a terminal error, raised before anything is committed).
 fn validated_wire_predicate_name(raw: Option<String>) -> Result<String, String> {
     let Some(raw) = raw else {
-        return Ok("isWiredTo".to_string());
+        return Ok(crate::wire_predicates::DEFAULT_WIRE_PREDICATE.to_string());
     };
     let predicate = raw.trim().to_string();
     let uri = crate::rdf_workspace_terms::wire_predicate_uri(&predicate);
     if predicate.is_empty() || !crate::rdf::is_writable_iri(&uri) {
-        return Err(format!(
-            "predicate {raw:?} is not a usable name; use one word (supports, contradicts, qualifies, \
-             grounds, requires, enables, exemplifies, flowsInto, produces, intensifiesWith, contains, \
-             precedes, consequenceOf, relatedTo) or a full IRI with no spaces"
-        ));
+        return Err(format!("predicate {raw:?} is not a usable name"));
     }
     Ok(predicate)
 }
@@ -4472,11 +4485,12 @@ mod tests {
             create_workspace_wire_in_doc(txn, &temp_dir, "graph-a", "doc-src", &payload)
         })
         .expect_err("a predicate with a space is refused");
-        assert!(error.contains("not a usable name"), "{error}");
+        assert!(error.contains("not one a wire can take"), "{error}");
 
         // What the store's parser refuses is refused here too (angel review F1),
         // and a blank predicate is not quietly the bare namespace (F2).
-        for bad in ["100%", "see#2", "a[1]", "   "] {
+        // (A predicate of spaces alone is no predicate: relatedTo, as below.)
+        for bad in ["100%", "see#2", "a[1]"] {
             let payload = object_payload(&json!({
                 "wireId": "w-bad", "targetDocumentId": "doc-target",
                 "predicate": bad, "updatedAt": 1_700_000_000_000i64,
@@ -4497,6 +4511,28 @@ mod tests {
         })
         .expect("a padded known predicate is accepted");
         assert_eq!(data["predicate"], "supports", "{data}");
+
+        // The path every client takes (the CRDT operation) holds the rule:
+        // a retired or invented name is refused, a wrong case is stored in
+        // its one spelling, no predicate is relatedTo, and a predicate the
+        // app's own features write is accepted.
+        let create = |id: &str, predicate: serde_json::Value| {
+            let mut wire = json!({ "wireId": id, "targetDocumentId": "doc-target", "updatedAt": 1_700_000_000_000i64 });
+            if !predicate.is_null() {
+                wire["predicate"] = predicate;
+            }
+            let payload = object_payload(&wire);
+            with_doc(&doc, |txn| create_workspace_wire_in_doc(txn, &temp_dir, "graph-a", "doc-src", &payload))
+        };
+        for refused in ["isWiredTo", "partOf", "synthesizes", "fooBarBaz", "relatesTo", "http://example.test/v#supports"] {
+            let error = create("w-refused", json!(refused)).expect_err(refused);
+            assert!(error.contains("not one a wire can take"), "{refused}: {error}");
+        }
+        assert_eq!(create("w-case", json!("Supports")).expect("wrong case")["predicate"], "supports");
+        assert_eq!(create("w-empty", json!("")).expect("empty")["predicate"], "relatedTo");
+        assert_eq!(create("w-blank", json!("   ")).expect("blank")["predicate"], "relatedTo");
+        assert_eq!(create("w-absent", serde_json::Value::Null).expect("absent")["predicate"], "relatedTo");
+        assert_eq!(create("w-feature", json!("annotates")).expect("feature")["predicate"], "annotates");
     }
 
     #[test]

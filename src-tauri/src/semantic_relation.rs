@@ -409,6 +409,12 @@ fn relation_profile_verbalization(
 
 fn relation_label(predicate_iri: &str) -> String {
     let short = predicate_short_name(predicate_iri);
+    // The fourteen and the retired names (older wires keep theirs) have
+    // labels of their own; anything else is read from its spelling.
+    let label = crate::wire_predicates::predicate_label(predicate_iri);
+    if label != short {
+        return label;
+    }
     builtin_wire_predicates()
         .into_iter()
         .find(|(name, _, _)| *name == short)

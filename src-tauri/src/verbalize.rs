@@ -196,7 +196,7 @@ mod tests {
             verbalize("urn:wire:1", &store, &VerbalizeCfg::default()).expect("relation verbalizes");
 
         assert!(text.contains("relation supports"), "{text}");
-        assert!(text.contains("category Quality"), "{text}");
+        assert!(text.contains("category Critique"), "{text}");
         assert!(text.contains("head head block text"), "{text}");
         assert!(text.contains("tail tail block text"), "{text}");
     }

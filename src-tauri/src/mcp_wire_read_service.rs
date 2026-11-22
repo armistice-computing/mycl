@@ -5,11 +5,10 @@ use crate::{
     mcp_utils::{mcp_arg_string, mcp_required_document_id, mcp_required_graph_id},
     paths::existing_graph_dir,
     rdf_service::wire_predicate_uri,
-    wire_predicates::{builtin_wire_predicates, predicate_label, predicate_short_name},
+    wire_predicates::{predicate_label, predicate_short_name},
     wire_state::{wire_is_active, wire_matches_document},
     workspace_entity_projection::{workspace_document_title, workspace_documents, workspace_wires},
 };
-use std::collections::BTreeSet;
 
 fn wire_summary(
     wire: &serde_json::Value,
@@ -418,38 +417,32 @@ pub(super) fn mcp_local_list_wire_predicates(
     arguments: &serde_json::Value,
 ) -> Result<serde_json::Value, String> {
     let graph_id = mcp_required_graph_id(arguments)?;
-    let graph_dir = existing_graph_dir(&app, &graph_id)?;
-    let workspace = read_workspace_record(&graph_dir, &graph_id)?;
-    let mut predicates = Vec::new();
-    let mut seen = BTreeSet::new();
-
-    for (name, label, category) in builtin_wire_predicates() {
-        seen.insert(name.to_string());
-        predicates.push(serde_json::json!({
-            "name": name,
-            "label": label,
-            "category": if category.is_empty() { serde_json::Value::Null } else { serde_json::json!(category) },
-        }));
-    }
-
-    for wire in workspace_wires(workspace.snapshot.as_ref()) {
-        let Some(predicate) = json_string(wire.get("predicate")) else {
-            continue;
-        };
-        let short_name = predicate_short_name(&predicate);
-        if seen.insert(short_name.clone()) {
-            predicates.push(serde_json::json!({
-                "name": short_name,
-                "label": predicate_label(&predicate),
-                "category": "Custom",
-            }));
-        }
-    }
+    existing_graph_dir(&app, &graph_id)?;
+    // The same fourteen in every graph. A name some older wire carries is
+    // not offered: the list is what a new wire may take.
+    let predicates: Vec<serde_json::Value> = crate::wire_predicates::WIRE_PREDICATES
+        .iter()
+        .map(|predicate| {
+            serde_json::json!({
+                "name": predicate.name,
+                "label": predicate.label,
+                "category": predicate.category,
+                "description": predicate.description,
+            })
+        })
+        .collect();
+    let groups: Vec<serde_json::Value> = crate::wire_predicates::WIRE_PREDICATE_GROUPS
+        .iter()
+        .map(|(name, question)| serde_json::json!({ "name": name, "question": question }))
+        .collect();
 
     Ok(serde_json::json!({
         "graph_id": graph_id,
         "predicates": predicates,
+        "groups": groups,
+        "default": crate::wire_predicates::DEFAULT_WIRE_PREDICATE,
         "count": predicates.len(),
+        "note": "A reads as the source and B as the target. create_wires takes one of these names and refuses any other; a wire with no predicate is relatedTo.",
     }))
 }
 
