@@ -1,6 +1,6 @@
 {
   "repository": "https://github.com/armistice-computing/mycl-shrubbery.git",
-  "commit": "e0908d2aca58a8536653992b535179eba5d39da4",
+  "commit": "473124fca115c8a7542da918b65a77fe65c19e2e",
   "package": "@shrubbery/organism",
   "dist": "apps/organism/dist"
 }

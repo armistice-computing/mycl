@@ -32,7 +32,7 @@ pub(crate) const WIRE_PREDICATE_GROUPS: [(&str, &str); 5] = [
 /// packages/nucleus/src/wire-predicates.ts); change both together.
 pub(crate) const WIRE_PREDICATES: [WirePredicate; 14] = [
     WirePredicate { name: "grounds", label: "grounds", category: "Ground", description: "A provides the material or experiential foundation that keeps B from being empty abstraction" },
-    WirePredicate { name: "requires", label: "requires", category: "Ground", description: "B cannot exist or function without A" },
+    WirePredicate { name: "requires", label: "requires", category: "Ground", description: "A cannot exist or function without B" },
     WirePredicate { name: "enables", label: "enables", category: "Ground", description: "A creates the conditions for B to be possible" },
     WirePredicate { name: "exemplifies", label: "exemplifies", category: "Ground", description: "A is a concrete instance that makes B real" },
     WirePredicate { name: "supports", label: "supports", category: "Critique", description: "A provides evidence or argument for B" },
@@ -43,7 +43,7 @@ pub(crate) const WIRE_PREDICATES: [WirePredicate; 14] = [
     WirePredicate { name: "intensifiesWith", label: "intensifies with", category: "Genesis", description: "A and B amplify each other through contact" },
     WirePredicate { name: "contains", label: "contains", category: "Structure", description: "A spatially or structurally includes B" },
     WirePredicate { name: "precedes", label: "precedes", category: "Structure", description: "A comes before B in time or sequence" },
-    WirePredicate { name: "consequenceOf", label: "consequence of", category: "Structure", description: "B is an effect or result of A" },
+    WirePredicate { name: "consequenceOf", label: "consequence of", category: "Structure", description: "A is an effect or result of B" },
     WirePredicate { name: "relatedTo", label: "is related to", category: "Generic", description: "General association" },
 ];
 
@@ -214,6 +214,10 @@ mod tests {
             assert_eq!(writable_wire_predicate(&iri), Some(iri.clone()), "the vocabulary's IRI is kept as given");
             assert!(WIRE_PREDICATE_GROUPS.iter().any(|(group, _)| *group == predicate.category), "{}", predicate.name);
             assert!(!predicate.description.is_empty());
+        }
+        // A description reads the way the name does: "A requires B" is A's need.
+        for predicate in &WIRE_PREDICATES {
+            assert!(!predicate.description.starts_with("B "), "{}: {}", predicate.name, predicate.description);
         }
         // Wrong case is the same predicate, never a second one.
         assert_eq!(writable_wire_predicate("Supports").as_deref(), Some("supports"));
