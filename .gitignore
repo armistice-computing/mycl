@@ -23,5 +23,8 @@ Dockerfile.garden-linux-amd64
 # Local uv environments for the pinned PDF runtime project
 .venv/
 
+# Written by the differential tests beside their corpus
+/src-tauri/tests/fixtures/differential/out/
+
 # The built frontend, fetched from mycl-shrubbery by scripts/shrubbery-frontend.mjs
 /frontend/dist/

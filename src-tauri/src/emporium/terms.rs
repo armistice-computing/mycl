@@ -673,7 +673,7 @@ mod tests {
 
 // ===========================================================================
 // DIFFERENTIAL ORACLE (recon#1) — the Rust evaluator of the model<->runtime
-// differential oracle. See prototypes/ontology-to-lean/differential/.
+// differential oracle. Its corpus is in tests/fixtures/differential/corpus.
 //
 // It runs the REAL `diff_triples` / `canon` (and the REAL STRSTARTS-subtree +
 // bare-predicate face scope for the L5 axis) over a SHARED corpus, and emits
@@ -690,9 +690,9 @@ mod diff_oracle {
     use std::path::PathBuf;
 
     fn corpus_dir() -> PathBuf {
-        // src-tauri/ is the manifest dir; the corpus lives at the repo root.
+        // src-tauri/ is the manifest dir; the corpus is among the test fixtures.
         PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../prototypes/ontology-to-lean/differential")
+            .join("tests/fixtures/differential")
     }
 
     /// Decode the SHARED tagged CV object into a production `Term`. Prefers the
